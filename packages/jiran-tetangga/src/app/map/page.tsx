@@ -223,7 +223,7 @@ export default function MapPage() {
               key={f.value}
               onClick={() => setActiveFilter(f.value)}
               className={cn(
-                "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium transition-colors border",
+                "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 sm:px-3 sm:py-1.5 text-xs sm:text-sm font-medium transition-colors border",
                 activeFilter === f.value
                   ? "bg-primary text-primary-foreground border-primary"
                   : "bg-card text-foreground border-border hover:bg-muted"
@@ -262,7 +262,7 @@ export default function MapPage() {
         <MapContainer
           center={[3.107, 101.631]}
           zoom={14}
-          style={{ width: "100%", height: "65vh", minHeight: "400px", borderRadius: "0.75rem", overflow: "hidden" }}
+          style={{ width: "100%", height: "60vh", minHeight: "300px", borderRadius: "0.75rem", overflow: "hidden" }}
           scrollWheelZoom={true}
         >
           <TileLayer
@@ -296,7 +296,7 @@ export default function MapPage() {
               position={[incident.lat, incident.lng]}
               icon={createDivIcon(incident.type, incident.severity)}
             >
-              <Popup maxWidth={260}>
+              <Popup maxWidth={260} className="custom-popup">
                 <div className="space-y-2 py-1">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span

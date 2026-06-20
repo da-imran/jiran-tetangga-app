@@ -201,30 +201,28 @@ module.exports = (app, config) => {
 
 			const incidentResult = await mongo.findOne(mongoClient, MODULE, { _id: mongo.getObjectId(incidentId) });
 			if (!incidentResult) {
-				res.status(500).send({
-					status: 500,
-					message: `${apiName} error`,
-					error,
+				console.log(`${apiName} failed to fetch the incident. Incident not found.`);
+				res.status(404).send({
+					status: 404,
+					message: 'Incident not found',
 				});
 
 				logger.log({
 					service: SERVICE_NAME,
 					module: MODULE,
 					apiName,
-					status: 500,
-					message: error,
+					status: 404,
+					message: 'Incident not found',
 					traceId,
 					level: LOG_LEVELS.ERROR,
 				});
+				return;
 			}
-
-			const totalCount = (countResult && countResult[0] && countResult[0].total) ? countResult[0].total : 0;
 
 			console.log(`${apiName} Response Success.`);
 			res.status(200).send({
 				status: 200,
-				data: incidentResult || [],
-				total: totalCount
+				data: incidentResult
 			});
 
 			logger.log({
@@ -233,7 +231,7 @@ module.exports = (app, config) => {
 				apiName,
 				status: 200,
 				message: 'Response Success',
-				data: incidentResult || [],
+				data: incidentResult,
 				traceId,
 				level: LOG_LEVELS.INFO,
 			});

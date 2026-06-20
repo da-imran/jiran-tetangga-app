@@ -37,7 +37,7 @@ module.exports = (app, config) => {
 
 		try {
 			const adminUser = await mongo.find(mongoClient, MODULE,{},
-				{ 
+				{
 					_id: 1,
 					firstName: 1,
 					lastName: 1,
@@ -133,7 +133,7 @@ module.exports = (app, config) => {
 			if (!requiredCheck(req.params, requiredFields, res, config)) {
 				return;
 			}
-				
+
 			const adminUser = await mongo.findOne(mongoClient, MODULE, { _id: mongo.getObjectId(adminUserId) },
 				{
 					_id: 1,
@@ -158,7 +158,7 @@ module.exports = (app, config) => {
 					level: LOG_LEVELS.ERROR,
 				});
 			}
-			
+
 			console.log(`${apiName} Response Success.`);
 			res.status(200).send({
 				status: 200,
@@ -175,7 +175,7 @@ module.exports = (app, config) => {
 				traceId,
 				level: LOG_LEVELS.INFO,
 			});
-			
+
 		} catch (err) {
 			const error = { message: err.message, stack: err.stack };
 			res.status(500).send({
@@ -240,8 +240,8 @@ module.exports = (app, config) => {
 
 			if (!requiredCheck(req.body, requiredFields, res, config)) {
 				return;
-			} 
-				
+			}
+
 			const existingUser = await mongo.findOne(mongoClient, MODULE, { email });
 			if (existingUser) {
 				console.log(`${apiName} Bad request: duplicate admin email exists.`);
@@ -258,6 +258,7 @@ module.exports = (app, config) => {
 					traceId,
 					level: LOG_LEVELS.ERROR,
 				});
+				return;
 			}
 
 			const encryptPassword = CryptoJS.AES.encrypt(password, ENCRYPTION_KEY, { mode: CryptoJS.mode.ECB }).toString();
@@ -289,7 +290,7 @@ module.exports = (app, config) => {
 					level: LOG_LEVELS.ERROR,
 				});
 			}
-			
+
 			console.log(`${apiName} Response Success.`);
 			res.status(200).json({
 				message: 'Administrator created successfully',
@@ -326,6 +327,139 @@ module.exports = (app, config) => {
 		}
 	});
 
+	// Update Administrator user by UserId
+	app.patch(`/${ROUTE_PREPEND}/${VERSION}/adminUsers/:adminUserId`, async (req, res) => {
+		// #swagger.tags = ['adminUsers']
+		// #swagger.summary = 'Update an admin user'
+		// #swagger.description = 'Update an existing admin user details by its ID'
+		const traceId = uuidv4();
+		const apiName = 'Update Admin User API';
+		const { adminUserId } = req.params;
+		const {
+			firstName,
+			lastName,
+			email,
+			password,
+			phone,
+		} = req.body;
+
+		console.log(`${apiName} is called at ${new Date()}`);
+		logger.log({
+			service: SERVICE_NAME,
+			module: MODULE,
+			apiName,
+			method: METHODS.PATCH,
+			status: 200,
+			message: `${apiName} is called at ${new Date()}`,
+			traceId,
+			level: LOG_LEVELS.INFO,
+		});
+
+		try {
+			const requiredFields = [
+				'adminUserId',
+			];
+
+			const config = {
+				traceId,
+				MODULE,
+				apiName,
+			};
+
+			if (!requiredCheck(req.params, requiredFields, res, config)) {
+				return;
+			}
+
+			// Check if email is being updated and if it already exists
+			if (email) {
+				const existingUser = await mongo.findOne(mongoClient, MODULE, { email });
+				if (existingUser && existingUser._id.toString() !== adminUserId) {
+					console.log(`${apiName} Bad request: duplicate admin email exists.`);
+					res.status(400).send({
+						status: 400,
+						message: 'Bad request: duplicate admin email exists.',
+					});
+
+					logger.log({
+						service: SERVICE_NAME,
+						module: MODULE,
+						apiName,
+						status: 400,
+						message: 'Bad request: duplicate admin email exists.',
+						traceId,
+						level: LOG_LEVELS.ERROR,
+					});
+					return;
+				}
+			}
+
+			const updateObj = {};
+
+			if (firstName) updateObj.firstName = firstName;
+			if (lastName) updateObj.lastName = lastName;
+			if (email) updateObj.email = email;
+			if (phone) updateObj.phone = phone;
+			if (password) {
+				const encryptPassword = CryptoJS.AES.encrypt(password, ENCRYPTION_KEY, { mode: CryptoJS.mode.ECB }).toString();
+				updateObj.password = encryptPassword;
+			}
+			updateObj.updatedAt = new Date();
+
+			const updateResult = await mongo.findOneAndUpdate(mongoClient, MODULE, { _id: mongo.getObjectId(adminUserId) }, updateObj);
+			if (!updateResult) {
+				res.status(500).send({
+					status: 500,
+					message: 'Admin user not updated'
+				});
+
+				logger.log({
+					service: SERVICE_NAME,
+					module: MODULE,
+					apiName,
+					status: 500,
+					message: 'Admin user not updated',
+					data: updateResult,
+					traceId,
+					level: LOG_LEVELS.ERROR,
+				});
+			} 
+			
+			res.status(200).send({
+				status: 200,
+				message: 'Admin user updated successfully.',
+				data: JSON.parse(JSON.stringify(updateResult)),
+			});
+
+			logger.log({
+				service: SERVICE_NAME,
+				module: MODULE,
+				apiName,
+				status: 200,
+				message: 'Admin user updated successfully.',
+				data: updateResult,
+				traceId,
+				level: LOG_LEVELS.INFO,
+			});
+		} catch (err) {
+			const error = { message: err.message, stack: err.stack };
+			res.status(500).send({
+				status: 500,
+				message: `${apiName} error`,
+				error,
+			});
+
+			logger.log({
+				service: SERVICE_NAME,
+				module: MODULE,
+				apiName,
+				status: 500,
+				message: error,
+				traceId,
+				level: LOG_LEVELS.ERROR,
+			});
+		}
+	});
+
 	// Delete Administrator user by UserId
 	app.delete(`/${ROUTE_PREPEND}/${VERSION}/adminUsers/:adminUserId`, async (req, res) => {
 		// #swagger.tags = ['adminUsers']
@@ -334,7 +468,7 @@ module.exports = (app, config) => {
 		const traceId = uuidv4();
 		const apiName = 'Delete Admin User by UserId API';
 		const { adminUserId } = req.params;
-		
+
 		console.log(`${apiName} is called at ${new Date()}`);
 
 		logger.log({
@@ -352,7 +486,7 @@ module.exports = (app, config) => {
 			const requiredFields = [
 				'adminUserId',
 			];
-			
+
 			const config = {
 				traceId,
 				MODULE,
@@ -361,7 +495,7 @@ module.exports = (app, config) => {
 
 			if (!requiredCheck(req.params, requiredFields, res, config)) {
 				return;
-			} 
+			}
 
 			const deleteResult = await mongo.deleteOne(mongoClient, MODULE, { _id: mongo.getObjectId(adminUserId) });
 			if (!deleteResult) {

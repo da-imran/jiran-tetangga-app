@@ -177,16 +177,31 @@ module.exports = (app, config) => {
 				return;
 			} else {
 				const shopResult = await mongo.findOne(mongoClient, MODULE, { _id: mongo.getObjectId(shopId) });
-				const totalCount = (countResult && countResult[0] && countResult[0].total) ? countResult[0].total : 0;
+				if (!shopResult) {
+					console.log(`${apiName} failed to fetch the shop. Shop not found.`);
+					res.status(404).send({
+						status: 404,
+						message: 'Shop not found',
+					});
+
+					logger.log({
+						service: SERVICE_NAME,
+						module: MODULE,
+						apiName,
+						status: 404,
+						message: 'Shop not found',
+						traceId,
+						level: LOG_LEVELS.ERROR,
+					});
+					return;
+				}
 
 				console.log(`${apiName} Response Success.`);
 
 				res.status(200).send({
 					status: 200,
-					data: shopResult || [],
-					total: totalCount
+					data: shopResult
 				});
-
 
 				logger.log({
 					service: SERVICE_NAME,
@@ -194,11 +209,11 @@ module.exports = (app, config) => {
 					apiName,
 					status: 200,
 					message: 'Response Success',
-					data: shopResult || [],
+					data: shopResult,
 					traceId,
 					level: LOG_LEVELS.INFO,
 				});
-			} 
+			}
 		} catch (err) {
 			const error = { message: err.message, stack: err.stack };
 			res.status(500).send({

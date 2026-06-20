@@ -223,7 +223,7 @@ export default function Home() {
   return (
     <div className="flex min-h-screen w-full flex-col">
       <AppHeader />
-      <main className="flex-1 p-4 md:p-8">
+      <main className="flex-1 p-3 md:p-6">
         <Dialog open={imageDialogOpen} onOpenChange={setImageDialogOpen}>
           <DialogContent className="max-w-3xl">
             <DialogHeader>
@@ -254,7 +254,7 @@ export default function Home() {
           </DialogContent>
         </Dialog>
 
-        <div className="grid gap-6 md:grid-cols-2">
+        <div className="grid gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-3">
           {/* Road Disruptions Dashboard */}
           <DashboardCard
             title="Road Disruptions"

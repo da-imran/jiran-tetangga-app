@@ -103,13 +103,13 @@ const sampleData = {
 	events: Array.from({ length: 10 }, (_, i) => ({
 		title: `Sample Event ${i + 1}`,
 		description: `This is a sample event description for event ${i + 1}.`,
-		date: new Date(2026, 0, 20 + i),
+		eventDate: new Date(2026, 5, 15 + i).toISOString(),
 		startTime: '18:00',
 		endTime: '21:00',
 		location: `Location ${i + 1}`,
 		capacity: 50 + i * 10,
 		registered: i * 5,
-		status: ['upcoming', 'ongoing', 'completed'][i % 3],
+		status: i % 3 === 0 ? 'approved' : ['pending', 'rejected'][i % 2],
 		createdAt: new Date(),
 		updatedAt: new Date()
 	})),
@@ -137,10 +137,11 @@ const sampleData = {
 	parks: Array.from({ length: 10 }, (_, i) => ({
 		name: `Sample Park ${i + 1}`,
 		description: `This is a sample park description for park ${i + 1}.`,
-		location: `Area ${i + 1}`,
-		size: `${10 + i} acres`,
-		amenities: ['playground', 'picnic area', 'trails'][i % 3],
-		isOpen: true,
+		openingHours: {
+			opening: `${String(7 + (i % 4)).padStart(2, '0')}00`,
+			closing: `${String(19 + (i % 4)).padStart(2, '0')}00`
+		},
+		status: ['open', 'closed', 'maintenance'][i % 3],
 		createdAt: new Date(),
 		updatedAt: new Date()
 	})),
@@ -159,10 +160,11 @@ const sampleData = {
 	shops: Array.from({ length: 10 }, (_, i) => ({
 		name: `Sample Shop ${i + 1}`,
 		description: `This is a sample shop description for shop ${i + 1}.`,
-		type: ['food', 'retail', 'service'][i % 3],
-		location: `Unit ${100 + i}`,
-		isOpen: true,
-		rating: Math.floor(Math.random() * 5) + 1,
+		openingHours: {
+			opening: `${String(9 + (i % 3)).padStart(2, '0')}00`,
+			closing: `${String(21 + (i % 3)).padStart(2, '0')}00`
+		},
+		status: ['open', 'closed', 'maintenance'][i % 3],
 		createdAt: new Date(),
 		updatedAt: new Date()
 	})),

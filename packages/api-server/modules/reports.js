@@ -185,7 +185,7 @@ module.exports = (app, config) => {
 				return;
 			} else {
 				const reportsResult = await mongo.findOne(mongoClient, MODULE, { _id: mongo.getObjectId(reportId) });
-				const totalCount = (countResult && countResult[0] && countResult[0].total) ? countResult[0].total : 0;
+				const totalCount = (reportsResult && reportsResult[0] && reportsResult[0].total) ? reportsResult[0].total : 0;
 
 				console.log(`${apiName} Response Success.`);
 

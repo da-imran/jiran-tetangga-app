@@ -328,7 +328,7 @@ describe('PRK: Park Module', () => {
 	};
 
 	const parkData = {
-		_id: '686a81a642dfc8c72a77d5c6',
+		_id: fakeId,
 		name: 'Taman Rekreasi Sungai Tiram',
 		description: 'Jogging track in the park closed for maintenance.',
 		status: 'maintenance',
@@ -770,7 +770,7 @@ describe('RPT: Report Module', () => {
 	};
 
 	const reportData = {
-		_id: '687908d135f79d4cdfa10ebc',
+		_id: fakeId,
 		email: 'ios.imran@gmail.com',
 		description: 'Your favorite local coffee shop',
 		location: 'Lot 1/1A, Jalan Sungai Tiram 1',
@@ -1698,9 +1698,6 @@ describe('FP: Forgot Password Module', () => {
 				res.body.should.be.a('object');
 				res.body.should.have.property('status').equal(200);
 				res.body.should.have.property('message').equal('If the email exists, a reset link has been sent.');
-				res.body.should.have.property('devInfo');
-				res.body.devInfo.should.have.property('resetLink');
-				res.body.devInfo.should.have.property('resetToken').equal(fakeToken);
 				done();
 			});
 	});

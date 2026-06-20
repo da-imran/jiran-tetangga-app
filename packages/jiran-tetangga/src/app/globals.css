@@ -94,3 +94,41 @@
     @apply cursor-pointer rounded-sm ring-offset-background transition-colors hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2;
   }
 }
+
+/* Leaflet popup z-index fix - ensure popup displays in front of map */
+.leaflet-container {
+  z-index: 1;
+}
+
+.leaflet-popup {
+  z-index: 99999 !important;
+}
+
+.leaflet-popup-content-wrapper {
+  z-index: 99999 !important;
+}
+
+.leaflet-popup-tip {
+  z-index: 99999 !important;
+}
+
+/* Ensure panes are correctly ordered */
+.leaflet-pane.leaflet-map-pane {
+  z-index: 1;
+}
+
+.leaflet-pane.leaflet-marker-pane {
+  z-index: 600;
+}
+
+.leaflet-pane.leaflet-shadow-pane {
+  z-index: 600;
+}
+
+.leaflet-pane.leaflet-popup-pane {
+  z-index: 99999;
+}
+
+.leaflet-control-container {
+  z-index: 99999;
+}

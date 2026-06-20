@@ -174,32 +174,29 @@ module.exports = (app, config) => {
 			
 			const mongoResult = await mongo.findOne(mongoClient, MODULE, {_id: mongo.getObjectId(disruptionId)});
 			if (!mongoResult) {
-				console.error('Error finding disruption.');
-				res.status(500).send({
-					status: 500,
-					message: 'Error finding disruption.',
+				console.log(`${apiName} failed to fetch the disruption. Disruption not found.`);
+				res.status(404).send({
+					status: 404,
+					message: 'Disruption not found',
 				});
 
 				logger.log({
 					service: SERVICE_NAME,
 					module: MODULE,
 					apiName,
-					status: 500,
-					data: mongoResult,
-					message: 'Error finding disruption.',
+					status: 404,
+					message: 'Disruption not found',
 					traceId,
 					level: LOG_LEVELS.ERROR,
 				});
+				return;
 			}
-
-			const totalCount = (countResult && countResult[0] && countResult[0].total) ? countResult[0].total : 0;
 
 			console.log(`${apiName} Response Success.`);
 
 			res.status(200).send({
 				status: 200,
-				data: mongoResult || [],
-				total: totalCount
+				data: mongoResult || []
 			});
 
 			logger.log({

@@ -178,7 +178,7 @@ module.exports = (app, config) => {
 				return;
 			} else {
 				const parksResult = await mongo.findOne(mongoClient, MODULE, { _id: mongo.getObjectId(parkId) });
-				const totalCount = (countResult && countResult[0] && countResult[0].total) ? countResult[0].total : 0;
+				const totalCount = (parksResult && parksResult[0] && parksResult[0].total) ? parksResult[0].total : 0;
 				console.log(`${apiName} Response Success.`);
 
 				res.status(200).send({

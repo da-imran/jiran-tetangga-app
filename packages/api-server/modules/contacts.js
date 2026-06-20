@@ -200,7 +200,7 @@ module.exports = (app, config) => {
 				});
 			}
 
-			const totalCount = (countResult && countResult[0] && countResult[0].total) ? countResult[0].total : 0;
+			const totalCount = (contactResult && contactResult[0] && contactResult[0].total) ? contactResult[0].total : 0;
 			console.log(`${apiName} Response Success.`);
 
 			res.status(200).send({
