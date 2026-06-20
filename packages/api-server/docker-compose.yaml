@@ -1,0 +1,70 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: backend
+    environment:
+      NODE_ENV: dev
+      ROUTE_PREPEND: jiran-tetangga
+      HOSTNAME: apidev
+      API_VERSION: ${API_VERSION}
+      APP_VERSION: ${APP_VERSION}
+      VERSION: ${VERSION}
+      MONGODB_DBNAME: ${MONGODB_DBNAME}
+      PORT: ${PORT}
+      MONGODB_URI: mongodb://mongodb:27017/jiran-tetangga
+      INFISICAL_URI: ${INFISICAL_URI}
+      INFISICAL_PROJECT_ID: ${INFISICAL_PROJECT_ID}
+      INFISICAL_CLIENT_ID: ${INFISICAL_CLIENT_ID}
+      INFISICAL_CLIENT_SECRET: ${INFISICAL_CLIENT_SECRET}
+      INFISICAL_ENV: dev
+    ports:
+      - "${PORT}:${PORT}"
+    networks:
+      - jiran-tetangga-networks
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    restart: on-failure
+    volumes:
+      - .:/usr/src/app
+      - /usr/src/app/node_modules
+    command: ["npm", "start"]
+    
+  mongodb:
+    image: mongo:noble
+    container_name: mongodb
+    restart: always
+    volumes:
+      - db_data:/data/db
+    ports:
+      - "27019:27017"
+    networks:
+      - jiran-tetangga-networks
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand({ping: 1})", "--quiet"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+
+  nginx:
+    container_name: nginx
+    image: nginx:stable-perl
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+    ports:
+      - "8080:8080"
+    depends_on:
+      - backend
+    networks:
+      - jiran-tetangga-networks
+
+networks:
+  jiran-tetangga-networks:
+    external: true
+    name: jiran-tetangga-networks
+
+volumes:
+  db_data:

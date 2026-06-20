@@ -1,0 +1,49 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Build output
+dist/
+tmp/
+out-tsc/
+*.tsbuildinfo
+.next/
+out/
+.cache/
+.local/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Coverage
+coverage/
+
+# IDEs / Editors
+.idea/
+.vscode/*
+!.vscode/settings.json
+.cursor/
+.github/instructions/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Misc
+/connect.lock
+/libpeerconnection.log
+
+# Migration backup
+.migration-backup/
+
+.claude

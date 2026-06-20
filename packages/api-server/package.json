@@ -1,0 +1,44 @@
+{
+  "name": "@workspace/api-server",
+  "version": "1.0.0",
+  "main": "index.js",
+  "private": true,
+  "scripts": {
+    "swagger": "node swagger/swagger.js",
+    "build": "npm run swagger",
+    "test": "mocha --timeout 10000 --exit",
+    "start": "node app.js",
+    "start:dev": "npm run swagger && node app.js",
+    "dev": "nodemon --watch '**/*.js' --ignore 'test/**' --exec 'npm run start:dev'",
+    "lint": "eslint ."
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "JiranTetangga Backend API Server",
+  "dependencies": {
+    "@infisical/sdk": "^4.0.4",
+    "axios": "^1.11.0",
+    "chai": "^4.3.7",
+    "chai-http": "^4.3.0",
+    "cors": "^2.8.5",
+    "crypto-js": "^4.2.0",
+    "dotenv": "^16.5.0",
+    "express": "^5.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "mocha": "^11.7.1",
+    "mongodb": "^6.15.0",
+    "node-fetch": "^3.3.2",
+    "sinon": "^15.2.0",
+    "swagger-autogen": "^2.23.7",
+    "swagger-ui-express": "^5.0.1",
+    "uuid": "^11.1.0",
+    "winston": "^3.17.0"
+  },
+  "devDependencies": {
+    "eslint": "^8.57.1",
+    "eslint-config-airbnb-base": "^15.0.0",
+    "eslint-plugin-import": "^2.31.0",
+    "nodemon": "^3.1.10"
+  }
+}
