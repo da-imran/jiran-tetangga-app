@@ -21,7 +21,7 @@ app.use(cors({
 module.exports = async () => {
 	const secretsLoaded = await checkSecretObjectNull();
 	if (!secretsLoaded) {
-		console.error('❌ Critical secrets could not be loaded from Infisical. Exiting...');
+		console.error('Critical secrets could not be loaded from Infisical. Exiting...');
 		process.exit(1);
 	}
 	const mongoUri = ['local', 'dev'].includes(ENVIRONMENT) ? process.env.MONGO_URI : secrets.MONGO_URI.value;

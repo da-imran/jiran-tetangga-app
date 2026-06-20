@@ -32,7 +32,6 @@ module.exports = (app, config) => {
 		});
 
 		try {
-			// Pagination
 			const {
 				pageNumber = 1,
 				dataPerPage = 20,
@@ -41,7 +40,7 @@ module.exports = (app, config) => {
 			} = req.query;
 
 			if (!Number.isInteger(+pageNumber) || +pageNumber <= 0) {
-				console.log(`❌ ${apiName} Bad Request: Invalid page number`);
+				console.log(`${apiName} Bad Request: Invalid page number`);
 				res.status(400).send({
 					status: 400,
 					message: 'Bad Request: Invalid page number',
@@ -57,7 +56,7 @@ module.exports = (app, config) => {
 					level: LOG_LEVELS.ERROR,
 				});
 			} else if (!Number.isInteger(+dataPerPage) || +dataPerPage <= 0 || +dataPerPage > 100) {
-				console.log(`❌ ${apiName} Bad Request: Invalid number of data per page`);
+				console.log(`${apiName} Bad Request: Invalid number of data per page`);
 				res.status(400).send({
 					status: 400,
 					message: 'Bad Request: Invalid number of data per page',
@@ -84,11 +83,10 @@ module.exports = (app, config) => {
   					matchStage.status = { $in: filterArray };
 				}
 				const aggregation = [
-					{ $match: matchStage }, // Match
-					{ $sort: { createdAt : -1 } }, // Sort
-					{ $skip: (+pageNumber - 1) * (+dataPerPage) }, // Pagination
+					{ $match: matchStage },
+					{ $sort: { createdAt : -1 } },
+					{ $skip: (+pageNumber - 1) * (+dataPerPage) },
 					{ $limit: +dataPerPage },
-					// Projection
 					{
 						$project: {
 							name: 1,
@@ -105,75 +103,25 @@ module.exports = (app, config) => {
 					mongo.aggregate(mongoClient, MODULE, countPipeline),
 					mongo.aggregate(mongoClient, MODULE, aggregation)
 				]);
-
-				// Always return 200 for list endpoints, even if empty
-
-
 				const totalCount = (countResult && countResult[0] && countResult[0].total) ? countResult[0].total : 0;
-
-
 
 				console.log(`${apiName} Response Success.`);
 
-
 				res.status(200).send({
-
-
 					status: 200,
-
-
 					data: parksResult || [],
-
-
 					total: totalCount
-
-
 				});
 
-
-
 				logger.log({
-
-
 					service: SERVICE_NAME,
-
-
 					module: MODULE,
-
-
 					apiName,
-
-
 					status: 200,
-
-
 					message: 'Response Success',
-
-
 					data: parksResult || [],
-
-
 					traceId,
-
-
 					level: LOG_LEVELS.INFO,
-
-
-				});
-				res.status(500).send({
-					status: 500,
-					message: `${apiName} error`,
-					error,
-				});
-
-				logger.log({
-					service: SERVICE_NAME,
-					module: MODULE,
-					apiName,
-					status: 500,
-					message: error,
-					traceId,
-					level: LOG_LEVELS.ERROR,
 				});
 			} 
 		} catch (err) {
@@ -250,22 +198,6 @@ module.exports = (app, config) => {
 					traceId,
 					level: LOG_LEVELS.INFO,
 				});
-
-				res.status(500).send({
-					status: 500,
-					message: `${apiName} error`,
-					error,
-				});
-
-				logger.log({
-					service: SERVICE_NAME,
-					module: MODULE,
-					apiName,
-					status: 500,
-					message: error,
-					traceId,
-					level: LOG_LEVELS.ERROR,
-				});
 			} 
 		} catch (err) {
 			const error = { message: err.message, stack: err.stack };
@@ -326,7 +258,7 @@ module.exports = (app, config) => {
 			if (!requiredCheck(req.body, requiredFields, res, config)) {
 				return;
 			} else {
-				// 🔎 Proceed to create park
+				// Proceed to create park
 				const inputPark = {
 					name,
 					description,
@@ -356,7 +288,7 @@ module.exports = (app, config) => {
 						level: LOG_LEVELS.INFO,
 					});
 				} else {
-					console.error(`❌ ${apiName} failed to create.`);
+					console.error(`${apiName} failed to create.`);
 					res.status(500).send({
 						status: 500,
 						message: 'Error creating park.',
@@ -563,7 +495,7 @@ module.exports = (app, config) => {
 						level: LOG_LEVELS.INFO,
 					});
 				} else {
-					console.error(`❌ ${apiName} failed to delete.`);
+					console.error(`${apiName} failed to delete.`);
 					res.status(500).send({
 						status: 500,
 						message: 'Park not deleted'

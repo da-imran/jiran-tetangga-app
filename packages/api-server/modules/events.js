@@ -32,7 +32,6 @@ module.exports = (app, config) => {
 		});
 
 		try {
-			// Pagination
 			const {
 				pageNumber = 1,
 				dataPerPage = 20,
@@ -41,7 +40,7 @@ module.exports = (app, config) => {
 			} = req.query;
 
 			if (!Number.isInteger(+pageNumber) || +pageNumber <= 0) {
-				console.log(`❌ ${apiName} Bad Request: Invalid page number`);
+				console.log(`${apiName} Bad Request: Invalid page number`);
 				res.status(400).send({
 					status: 400,
 					message: 'Bad Request: Invalid page number',
@@ -57,7 +56,7 @@ module.exports = (app, config) => {
 					level: LOG_LEVELS.ERROR,
 				});
 			} else if (!Number.isInteger(+dataPerPage) || +dataPerPage <= 0 || +dataPerPage > 100) {
-				console.log(`❌ ${apiName} Bad Request: Invalid number of data per page`);
+				console.log(`${apiName} Bad Request: Invalid number of data per page`);
 				res.status(400).send({
 					status: 400,
 					message: 'Bad Request: Invalid number of data per page',
@@ -84,11 +83,10 @@ module.exports = (app, config) => {
   					matchStage.status = { $in: filterArray };
 				}
 				const aggregation = [
-					{ $match: matchStage }, // Match
-					{ $sort: { createdAt : -1 } }, // Sort
-					{ $skip: (+pageNumber - 1) * (+dataPerPage) }, // Pagination
+					{ $match: matchStage },
+					{ $sort: { createdAt : -1 } },
+					{ $skip: (+pageNumber - 1) * (+dataPerPage) },
 					{ $limit: +dataPerPage },
-					// Projection
 					{
 						$project: {
 							title: 1,
@@ -108,60 +106,24 @@ module.exports = (app, config) => {
 					mongo.aggregate(mongoClient, MODULE, countPipeline),
 					mongo.aggregate(mongoClient, MODULE, aggregation)
 				]);
-
-				// Always return 200 for list endpoints, even if empty
-
-
 				const totalCount = (countResult && countResult[0] && countResult[0].total) ? countResult[0].total : 0;
 
-
-
 				console.log(`${apiName} Response Success.`);
-
-
 				res.status(200).send({
-
-
 					status: 200,
-
-
 					data: eventsResult || [],
-
-
 					total: totalCount
-
-
 				});
 
-
-
 				logger.log({
-
-
 					service: SERVICE_NAME,
-
-
 					module: MODULE,
-
-
 					apiName,
-
-
 					status: 200,
-
-
 					message: 'Response Success',
-
-
 					data: eventsResult || [],
-
-
 					traceId,
-
-
 					level: LOG_LEVELS.INFO,
-
-
 				});
 			}
 		} catch (err) {
@@ -209,50 +171,52 @@ module.exports = (app, config) => {
 			const requiredFields = [
 				'eventId',
 			];
+
 			const config = {
 				traceId,
 				MODULE,
 				apiName,
 			};
+
 			if (!requiredCheck(req.params, requiredFields, res, config)) {
 				return;
-			} else {
-				const eventsResult = await mongo.findOne(mongoClient, MODULE, {_id: mongo.getObjectId(eventId)});
-				if (eventsResult) {
-					console.log(`${apiName} Response Success.`);
-					res.status(200).send({
-						status: 200,
-						data: eventsResult
-					});
-
-					logger.log({
-						service: SERVICE_NAME,
-						module: MODULE,
-						apiName,
-						status: 200,
-						message: 'Response Success',
-						data: eventsResult,
-						traceId,
-						level: LOG_LEVELS.INFO,
-					});
-				} else {
-					console.log(`❌ ${apiName} Response Failed.`);
-					res.status(404).send({
-						status: 404,
-						message: 'Event not found',
-					});
-
-					logger.log({
-						service: SERVICE_NAME,
-						module: MODULE,
-						apiName,
-						status: 404,
-						message: 'Event not found',
-						traceId,
-						level: LOG_LEVELS.ERROR,
-					});
-				}
 			}
+
+			const eventsResult = await mongo.findOne(mongoClient, MODULE, {_id: mongo.getObjectId(eventId)});
+			if (!eventsResult) {
+				console.log(`${apiName} Response Failed.`);
+				res.status(404).send({
+					status: 404,
+					message: 'Event not found',
+				});
+
+				logger.log({
+					service: SERVICE_NAME,
+					module: MODULE,
+					apiName,
+					status: 404,
+					message: 'Event not found',
+					traceId,
+					level: LOG_LEVELS.ERROR,
+				});
+			}
+
+			console.log(`${apiName} Response Success.`);
+			res.status(200).send({
+				status: 200,
+				data: eventsResult
+			});
+
+			logger.log({
+				service: SERVICE_NAME,
+				module: MODULE,
+				apiName,
+				status: 200,
+				message: 'Response Success',
+				data: eventsResult,
+				traceId,
+				level: LOG_LEVELS.INFO,
+			});
 		} catch (err) {
 			const error = { message: err.message, stack: err.stack };
 			res.status(500).send({
@@ -313,72 +277,72 @@ module.exports = (app, config) => {
 				'location',
 			];
 
-			// Check for either eventName or title
 			if (!input?.eventName && !input?.title) {
-				console.log(`❌ ${apiName} Bad Request: eventName or title is required`);
+				console.log(`${apiName} Bad Request: eventName or title is required`);
 				res.status(400).send({
 					status: 400,
 					message: 'Bad Request: eventName or title is required',
 				});
 				return;
 			}
+
 			const config = {
 				traceId,
 				MODULE,
 				apiName,
 			};
+
 			if (!requiredCheck(input, requiredFields, res, config)) {
 				return;
-			} else {
-				// 🔎 Proceed to create event
-				const inputEvents = {
-					title,
-					description,
-					organizerName,
-					organizerEmail,
-					eventDate,
-					location,
-					status: 'pending',
-					createdAt: new Date(),
-				};
-				const inputResult = await mongo.insertOne(mongoClient, MODULE, inputEvents);
-				if (inputResult) {
-					console.log(`${apiName} MongoDB Success.`);
-					res.status(200).json({
-						status: 200,
-						message: 'Event created successfully',
-						_id: inputResult.insertedId,
-					});
-
-					logger.log({
-						service: SERVICE_NAME,
-						module: MODULE,
-						apiName,
-						status: 200,
-						message: 'Event created successfully',
-						data: inputResult,
-						traceId,
-						level: LOG_LEVELS.INFO,
-					});
-				} else {
-					console.error(`❌ ${apiName} failed to create.`);
-					res.status(500).send({
-						status: 500,
-						message: 'Error creating event.',
-					});
-
-					logger.log({
-						service: SERVICE_NAME,
-						module: MODULE,
-						apiName,
-						status: 500,
-						message: 'Error creating event.',
-						data: inputResult,
-						traceId,
-						level: LOG_LEVELS.ERROR,
-					});
-				}
 			}
+				
+			const inputEvents = {
+				title,
+				description,
+				organizerName,
+				organizerEmail,
+				eventDate,
+				location,
+				status: 'pending',
+				createdAt: new Date(),
+			};
+			const inputResult = await mongo.insertOne(mongoClient, MODULE, inputEvents);
+			if (!inputResult) {
+				console.error(`${apiName} failed to create.`);
+				res.status(500).send({
+					status: 500,
+					message: 'Error creating event.',
+				});
+
+				logger.log({
+					service: SERVICE_NAME,
+					module: MODULE,
+					apiName,
+					status: 500,
+					message: 'Error creating event.',
+					data: inputResult,
+					traceId,
+					level: LOG_LEVELS.ERROR,
+				});
+			}
+
+			console.log(`${apiName} MongoDB Success.`);
+			res.status(200).json({
+				status: 200,
+				message: 'Event created successfully',
+				_id: inputResult.insertedId,
+			});
+
+			logger.log({
+				service: SERVICE_NAME,
+				module: MODULE,
+				apiName,
+				status: 200,
+				message: 'Event created successfully',
+				data: inputResult,
+				traceId,
+				level: LOG_LEVELS.INFO,
+			});
 		} catch (err) {
 			const error = { message: err.message, stack: err.stack };
 			res.status(500).send({
@@ -431,60 +395,62 @@ module.exports = (app, config) => {
 			const requiredFields = [
 				'eventId',
 			];
+
 			const config = {
 				traceId,
 				MODULE,
 				apiName,
 			};
+
 			if (!requiredCheck(req.params, requiredFields, res, config)) {
 				return;
-			} else {
-				const updateObj = {};
+			} 
 
-				if (title) updateObj.title = title;
-				if (description) updateObj.description = description;
-				if (location) updateObj.location = location;
-				if (status) updateObj.status = status;
-				if (eventDate) updateObj.eventDate = eventDate;
+			const updateObj = {};
 
-				const updateResult = await mongo.findOneAndUpdate(mongoClient, MODULE, { _id: mongo.getObjectId(eventId) }, updateObj);
-				if (!updateResult) {
-					console.log(`${apiName} failed to update.`);
-					res.status(500).send({
-						status: 500,
-						message: 'Event not updated'
-					});
+			if (title) updateObj.title = title;
+			if (description) updateObj.description = description;
+			if (location) updateObj.location = location;
+			if (status) updateObj.status = status;
+			if (eventDate) updateObj.eventDate = eventDate;
 
-					logger.log({
-						service: SERVICE_NAME,
-						module: MODULE,
-						apiName,
-						status: 500,
-						message: 'Event not updated',
-						data: updateResult,
-						traceId,
-						level: LOG_LEVELS.ERROR,
-					});
-				} else {
-					console.log(`${apiName} MongoDB Success.`);
-					res.status(200).send({
-						status: 200,
-						message: 'Event updated successfully.',
-						data: JSON.parse(JSON.stringify(updateResult)),
-					});
+			const updateResult = await mongo.findOneAndUpdate(mongoClient, MODULE, { _id: mongo.getObjectId(eventId) }, updateObj);
+			if (!updateResult) {
+				console.log(`${apiName} failed to update.`);
+				res.status(500).send({
+					status: 500,
+					message: 'Event not updated'
+				});
 
-					logger.log({
-						service: SERVICE_NAME,
-						module: MODULE,
-						apiName,
-						status: 200,
-						message: 'Event updated successfully.',
-						data: updateResult,
-						traceId,
-						level: LOG_LEVELS.INFO,
-					});
-				}
+				logger.log({
+					service: SERVICE_NAME,
+					module: MODULE,
+					apiName,
+					status: 500,
+					message: 'Event not updated',
+					data: updateResult,
+					traceId,
+					level: LOG_LEVELS.ERROR,
+				});
 			}
+
+			console.log(`${apiName} MongoDB Success.`);
+			res.status(200).send({
+				status: 200,
+				message: 'Event updated successfully.',
+				data: JSON.parse(JSON.stringify(updateResult)),
+			});
+
+			logger.log({
+				service: SERVICE_NAME,
+				module: MODULE,
+				apiName,
+				status: 200,
+				message: 'Event updated successfully.',
+				data: updateResult,
+				traceId,
+				level: LOG_LEVELS.INFO,
+			});
 		} catch (err) {
 			const error = { message: err.message, stack: err.stack };
 			res.status(500).send({
@@ -530,53 +496,55 @@ module.exports = (app, config) => {
 			const requiredFields = [
 				'eventId',
 			];
+
 			const config = {
 				traceId,
 				MODULE,
 				apiName,
 			};
+
 			if (!requiredCheck(req.params, requiredFields, res, config)) {
 				return;
-			} else {
-				const deleteResult = await mongo.deleteOne(mongoClient, MODULE, { _id: mongo.getObjectId(eventId) });
-				if (deleteResult) {
-					console.log(`${apiName} MongoDB Success.`);
-					res.status(200).send({
-						status: 200,
-						message: 'Event deleted successfully.',
-						data: {
-							event: deleteResult
-						},
-					});
-
-					logger.log({
-						service: SERVICE_NAME,
-						module: MODULE,
-						apiName,
-						status: 200,
-						message: 'Event deleted successfully.',
-						data: deleteResult,
-						traceId,
-						level: LOG_LEVELS.INFO,
-					});
-				} else {
-					console.error(`❌ ${apiName} failed to delete.`);
-					res.status(500).send({
-						status: 500,
-						message: 'Event not deleted'
-					});
-
-					logger.log({
-						service: SERVICE_NAME,
-						module: MODULE,
-						apiName,
-						status: 500,
-						message: 'Event not deleted.',
-						traceId,
-						level: LOG_LEVELS.ERROR,
-					});
-				}
 			}
+
+			const deleteResult = await mongo.deleteOne(mongoClient, MODULE, { _id: mongo.getObjectId(eventId) });
+			if (!deleteResult) {
+				console.error(`${apiName} failed to delete.`);
+				res.status(500).send({
+					status: 500,
+					message: 'Event not deleted'
+				});
+
+				logger.log({
+					service: SERVICE_NAME,
+					module: MODULE,
+					apiName,
+					status: 500,
+					message: 'Event not deleted.',
+					traceId,
+					level: LOG_LEVELS.ERROR,
+				});
+			}
+
+			console.log(`${apiName} MongoDB Success.`);
+			res.status(200).send({
+				status: 200,
+				message: 'Event deleted successfully.',
+				data: {
+					event: deleteResult
+				},
+			});
+
+			logger.log({
+				service: SERVICE_NAME,
+				module: MODULE,
+				apiName,
+				status: 200,
+				message: 'Event deleted successfully.',
+				data: deleteResult,
+				traceId,
+				level: LOG_LEVELS.INFO,
+			});
 		} catch (err) {
 			const error = { message: err.message, stack: err.stack };
 			res.status(500).send({

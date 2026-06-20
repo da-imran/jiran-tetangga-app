@@ -41,7 +41,7 @@ module.exports = (app, config) => {
 			} = req.query;
 
 			if (!Number.isInteger(+pageNumber) || +pageNumber <= 0) {
-				console.log(`❌ ${apiName} Bad Request: Invalid page number`);
+				console.log(`${apiName} Bad Request: Invalid page number`);
 				res.status(400).send({
 					status: 400,
 					message: 'Bad Request: Invalid page number',
@@ -57,7 +57,7 @@ module.exports = (app, config) => {
 					level: LOG_LEVELS.ERROR,
 				});
 			} else if (!Number.isInteger(+dataPerPage) || +dataPerPage <= 0 || +dataPerPage > 100) {
-				console.log(`❌ ${apiName} Bad Request: Invalid number of data per page`);
+				console.log(`${apiName} Bad Request: Invalid number of data per page`);
 				res.status(400).send({
 					status: 400,
 					message: 'Bad Request: Invalid number of data per page',
@@ -121,75 +121,25 @@ module.exports = (app, config) => {
 					mongo.aggregate(mongoClient, MODULE, countPipeline),
 					mongo.aggregate(mongoClient, MODULE, aggregation)
 				]);
-
-				// Always return 200 for list endpoints, even if empty
-
-
 				const totalCount = (countResult && countResult[0] && countResult[0].total) ? countResult[0].total : 0;
-
-
 
 				console.log(`${apiName} Response Success.`);
 
-
 				res.status(200).send({
-
-
 					status: 200,
-
-
 					data: listingResult || [],
-
-
 					total: totalCount
-
-
 				});
 
-
-
 				logger.log({
-
-
 					service: SERVICE_NAME,
-
-
 					module: MODULE,
-
-
 					apiName,
-
-
 					status: 200,
-
-
 					message: 'Response Success',
-
-
 					data: listingResult || [],
-
-
 					traceId,
-
-
 					level: LOG_LEVELS.INFO,
-
-
-				});
-				res.status(500).send({
-					status: 500,
-					message: `${apiName} error`,
-					error,
-				});
-
-				logger.log({
-					service: SERVICE_NAME,
-					module: MODULE,
-					apiName,
-					status: 500,
-					message: error,
-					traceId,
-					level: LOG_LEVELS.ERROR,
 				});
 			} 
 		} catch (err) {
@@ -264,7 +214,7 @@ module.exports = (app, config) => {
 						level: LOG_LEVELS.INFO,
 					});
 				} else {
-					console.log(`❌ ${apiName} Response Failed.`);
+					console.log(`${apiName} Response Failed.`);
 					res.status(404).send({
 						status: 404,
 						message: 'Listing not found',
@@ -399,7 +349,7 @@ module.exports = (app, config) => {
 						level: LOG_LEVELS.INFO,
 					});
 				} else {
-					console.error('❌ Error creating Listing.');
+					console.error('Error creating Listing.');
 					res.status(500).send({
 						status: 500,
 						message: 'Error creating Listing.',

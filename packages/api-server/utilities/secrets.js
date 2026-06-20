@@ -47,7 +47,7 @@ const getSecrets = async (secretsObj) => {
 				});
 				secretsObj[key].value = result.secretValue;
 			} catch (err) {
-				console.error(`❌ Failed to fetch secret "${key}": ${err.message}`);
+				console.error(`Failed to fetch secret "${key}": ${err.message}`);
 			}
 		})
 	);

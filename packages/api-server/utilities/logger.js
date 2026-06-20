@@ -63,7 +63,7 @@ const logger = {
 				},
 			});
 		} catch (err) {
-			console.error('❌ Failed to send log to Loki:', err.message);
+			console.error('Failed to send log to Loki:', err.message);
 		}
 	},
 };

@@ -20,6 +20,7 @@ module.exports = (app, config) => {
 		const apiName = 'Get All Bookings API';
 
 		console.log(`${apiName} is called at ${new Date()}`);
+
 		logger.log({
 			service: SERVICE_NAME,
 			module: MODULE,
@@ -30,8 +31,8 @@ module.exports = (app, config) => {
 			traceId,
 			level: LOG_LEVELS.INFO,
 		});
+
 		try {
-			// Pagination
 			const {
 				pageNumber = 1,
 				dataPerPage = 20,
@@ -40,7 +41,7 @@ module.exports = (app, config) => {
 			} = req.query;
 
 			if (!Number.isInteger(+pageNumber) || +pageNumber <= 0) {
-				console.log(`❌ ${apiName} Bad Request: Invalid page number`);
+				console.log(`${apiName} Bad Request: Invalid page number`);
 				res.status(400).send({
 					status: 400,
 					message: 'Bad Request: Invalid page number',
@@ -56,7 +57,7 @@ module.exports = (app, config) => {
 					level: LOG_LEVELS.ERROR,
 				});
 			} else if (!Number.isInteger(+dataPerPage) || +dataPerPage <= 0 || +dataPerPage > 100) {
-				console.log(`❌ ${apiName} Bad Request: Invalid number of data per page`);
+				console.log(`${apiName} Bad Request: Invalid number of data per page`);
 				res.status(400).send({
 					status: 400,
 					message: 'Bad Request: Invalid number of data per page',
@@ -71,114 +72,65 @@ module.exports = (app, config) => {
 					traceId,
 					level: LOG_LEVELS.ERROR,
 				});
-			} else {
-				const matchStage = {};
-				if (search && search.trim() !== '') {
-					const safeSearch = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-					matchStage.$or = [
-						{ description: { $regex: safeSearch, $options: 'i' } },
-						{ userName: { $regex: safeSearch, $options: 'i' } },
-						{ facilityName: { $regex: safeSearch, $options: 'i' } },
-					];
-				}
-
-				if (typeof filters === 'string' && filters.trim() !== '') {
-					const filterArray = filters.split(',').map(f => f.trim());
-					matchStage.status = { $in: filterArray };
-				}
-				const aggregation = [
-					{ $match: matchStage },
-					{ $sort: { createdAt: -1 } },
-					{ $skip: (+pageNumber - 1) * (+dataPerPage) },
-					{ $limit: +dataPerPage },
-					{
-						$project: {
-							description: 1,
-							userName: 1,
-							facilityName: 1,
-							bookingDate: 1,
-							status: 1,
-							createdAt: 1,
-						},
-					}
-				];
-
-				const countPipeline = [{ $match: matchStage }, { $count: 'total' }];
-				const [countResult, bookingResult] = await Promise.all([
-					mongo.aggregate(mongoClient, MODULE, countPipeline),
-					mongo.aggregate(mongoClient, MODULE, aggregation)
-				]);
-
-				// Always return 200 for list endpoints, even if empty
-
-
-				const totalCount = (countResult && countResult[0] && countResult[0].total) ? countResult[0].total : 0;
-
-
-
-				console.log(`${apiName} Response Success.`);
-
-
-				res.status(200).send({
-
-
-					status: 200,
-
-
-					data: bookingResult || [],
-
-
-					total: totalCount
-
-
-				});
-
-
-
-				logger.log({
-
-
-					service: SERVICE_NAME,
-
-
-					module: MODULE,
-
-
-					apiName,
-
-
-					status: 200,
-
-
-					message: 'Response Success',
-
-
-					data: bookingResult || [],
-
-
-					traceId,
-
-
-					level: LOG_LEVELS.INFO,
-
-
-				});
-				res.status(500).send({
-					status: 500,
-					message: `${apiName} error`,
-					error,
-				});
-
-				logger.log({
-					service: SERVICE_NAME,
-					module: MODULE,
-					apiName,
-					status: 500,
-					message: error,
-					traceId,
-					level: LOG_LEVELS.ERROR,
-				});
 			} 
+
+			const matchStage = {};
+			if (search && search.trim() !== '') {
+				const safeSearch = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+				matchStage.$or = [
+					{ description: { $regex: safeSearch, $options: 'i' } },
+					{ userName: { $regex: safeSearch, $options: 'i' } },
+					{ facilityName: { $regex: safeSearch, $options: 'i' } },
+				];
+			}
+
+			if (typeof filters === 'string' && filters.trim() !== '') {
+				const filterArray = filters.split(',').map(f => f.trim());
+				matchStage.status = { $in: filterArray };
+			}
+
+			const aggregation = [
+				{ $match: matchStage },
+				{ $sort: { createdAt: -1 } },
+				{ $skip: (+pageNumber - 1) * (+dataPerPage) },
+				{ $limit: +dataPerPage },
+				{
+					$project: {
+						description: 1,
+						userName: 1,
+						facilityName: 1,
+						bookingDate: 1,
+						status: 1,
+						createdAt: 1,
+					},
+				}
+			];
+
+			const countPipeline = [{ $match: matchStage }, { $count: 'total' }];
+			const [countResult, bookingResult] = await Promise.all([
+				mongo.aggregate(mongoClient, MODULE, countPipeline),
+				mongo.aggregate(mongoClient, MODULE, aggregation)
+			]);
+
+			const totalCount = (countResult && countResult[0] && countResult[0].total) ? countResult[0].total : 0;
+			console.log(`${apiName} Response Success.`);
+
+			res.status(200).send({
+				status: 200,
+				data: bookingResult || [],
+				total: totalCount
+			});
+
+			logger.log({
+				service: SERVICE_NAME,
+				module: MODULE,
+				apiName,
+				status: 200,
+				message: 'Response Success',
+				data: bookingResult || [],
+				traceId,
+				level: LOG_LEVELS.INFO,
+			});
 		} catch (err) {
 			const error = { message: err.message, stack: err.stack };
 			res.status(500).send({
@@ -209,6 +161,7 @@ module.exports = (app, config) => {
 		const { bookingId } = req.params;
 
 		console.log(`${apiName} is called at ${new Date()}`);
+
 		logger.log({
 			service: SERVICE_NAME,
 			module: MODULE,
@@ -224,50 +177,51 @@ module.exports = (app, config) => {
 			const requiredFields = [
 				'bookingId',
 			];
+
 			const config = {
 				traceId,
 				MODULE,
 				apiName,
 			};
+
 			if (!requiredCheck(req.params, requiredFields, res, config)) {
 				return;
-			} else {
-				const bookingResult = await mongo.findOne(mongoClient, MODULE, { _id: mongo.getObjectId(bookingId) });
-				if (bookingResult) {
-					console.log(`${apiName} Response Success.`);
-					res.status(200).send({
-						status: 200,
-						data: bookingResult,
-					});
-
-					logger.log({
-						service: SERVICE_NAME,
-						module: MODULE,
-						apiName,
-						status: 200,
-						message: 'Response Success',
-						data: bookingResult,
-						traceId,
-						level: LOG_LEVELS.INFO,
-					});
-				} else {
-					console.log(`❌ ${apiName} Response Failed.`);
-					res.status(404).send({
-						status: 404,
-						message: 'Booking not found',
-					});
-
-					logger.log({
-						service: SERVICE_NAME,
-						module: MODULE,
-						apiName,
-						status: 404,
-						message: 'Booking not found',
-						traceId,
-						level: LOG_LEVELS.ERROR,
-					});
-				}
 			}
+			const bookingResult = await mongo.findOne(mongoClient, MODULE, { _id: mongo.getObjectId(bookingId) });
+			if (!bookingResult) {
+				console.log(`${apiName} Response Failed.`);
+				res.status(404).send({
+					status: 404,
+					message: 'Booking not found',
+				});
+
+				logger.log({
+					service: SERVICE_NAME,
+					module: MODULE,
+					apiName,
+					status: 404,
+					message: 'Booking not found',
+					traceId,
+					level: LOG_LEVELS.ERROR,
+				});
+			}
+			
+			console.log(`${apiName} Response Success.`);
+			res.status(200).send({
+				status: 200,
+				data: bookingResult,
+			});
+
+			logger.log({
+				service: SERVICE_NAME,
+				module: MODULE,
+				apiName,
+				status: 200,
+				message: 'Response Success',
+				data: bookingResult,
+				traceId,
+				level: LOG_LEVELS.INFO,
+			});
 		} catch (err) {
 			const error = { message: err.message, stack: err.stack };
 			res.status(500).send({
@@ -303,6 +257,7 @@ module.exports = (app, config) => {
 		} = req.body;
 
 		console.log(`${apiName} is called at ${new Date()}`);
+
 		logger.log({
 			service: SERVICE_NAME,
 			module: MODULE,
@@ -321,59 +276,62 @@ module.exports = (app, config) => {
 				'facilityName',
 				'bookingDate',
 			];
+
 			const config = {
 				traceId,
 				MODULE,
 				apiName,
 			};
+
 			if (!requiredCheck(req.body, requiredFields, res, config)) {
 				return;
-			} else {
-				const inputBooking = {
-					description,
-					userName,
-					facilityName,
-					bookingDate,
-					status: 'pending',
-					createdAt: new Date(),
-				};
-				const inputResult = await mongo.insertOne(mongoClient, MODULE, inputBooking);
-				if (inputResult) {
-					console.log(`${apiName} MongoDB Success.`);
-					res.status(200).json({
-						message: 'Booking created successfully',
-						_id: inputResult.insertedId,
-					});
-
-					logger.log({
-						service: SERVICE_NAME,
-						module: MODULE,
-						apiName,
-						status: 200,
-						message: 'Booking created successfully',
-						data: inputResult,
-						traceId,
-						level: LOG_LEVELS.INFO,
-					});
-				} else {
-					console.error('❌ Error creating Booking.');
-					res.status(500).send({
-						status: 500,
-						message: 'Error creating Booking.',
-					});
-
-					logger.log({
-						service: SERVICE_NAME,
-						module: MODULE,
-						apiName,
-						status: 500,
-						message: 'Error creating Booking.',
-						data: inputResult,
-						traceId,
-						level: LOG_LEVELS.ERROR,
-					});
-				}
 			}
+				
+			const inputBooking = {
+				description,
+				userName,
+				facilityName,
+				bookingDate,
+				status: 'pending',
+				createdAt: new Date(),
+			};
+
+			const inputResult = await mongo.insertOne(mongoClient, MODULE, inputBooking);
+			if (!inputResult) {
+				console.error('Error creating Booking.');
+				res.status(500).send({
+					status: 500,
+					message: 'Error creating Booking.',
+				});
+
+				logger.log({
+					service: SERVICE_NAME,
+					module: MODULE,
+					apiName,
+					status: 500,
+					message: 'Error creating Booking.',
+					data: inputResult,
+					traceId,
+					level: LOG_LEVELS.ERROR,
+				});
+			} 
+
+			console.log(`${apiName} MongoDB Success.`);
+			res.status(200).json({
+				message: 'Booking created successfully',
+				_id: inputResult.insertedId,
+			});
+
+			logger.log({
+				service: SERVICE_NAME,
+				module: MODULE,
+				apiName,
+				status: 200,
+				message: 'Booking created successfully',
+				data: inputResult,
+				traceId,
+				level: LOG_LEVELS.INFO,
+			});
 		} catch (err) {
 			const error = { message: err.message, stack: err.stack };
 			res.status(500).send({
@@ -411,6 +369,7 @@ module.exports = (app, config) => {
 		} = req.body;
 
 		console.log(`${apiName} is called at ${new Date()}`);
+
 		logger.log({
 			service: SERVICE_NAME,
 			module: MODULE,
@@ -426,58 +385,59 @@ module.exports = (app, config) => {
 			const requiredFields = [
 				'bookingId',
 			];
+
 			const config = {
 				traceId,
 				MODULE,
 				apiName,
 			};
+
 			if (!requiredCheck(req.params, requiredFields, res, config)) {
 				return;
-			} else {
-				const updateObj = {};
-				if (description) updateObj.description = description;
-				if (userName) updateObj.userName = userName;
-				if (facilityName) updateObj.facilityName = facilityName;
-				if (bookingDate) updateObj.bookingDate = bookingDate;
-				if (status) updateObj.status = status;
-				updateObj.updatedAt = new Date();
-
-				const updateResult = await mongo.findOneAndUpdate(mongoClient, MODULE, { _id: mongo.getObjectId(bookingId) }, updateObj);
-				if (!updateResult) {
-					res.status(500).send({
-						status: 500,
-						message: 'Booking not updated'
-					});
-
-					logger.log({
-						service: SERVICE_NAME,
-						module: MODULE,
-						apiName,
-						status: 500,
-						message: 'Booking not updated',
-						data: updateResult,
-						traceId,
-						level: LOG_LEVELS.ERROR,
-					});
-				} else {
-					res.status(200).send({
-						status: 200,
-						message: 'Booking updated successfully.',
-						data: JSON.parse(JSON.stringify(updateResult)),
-					});
-
-					logger.log({
-						service: SERVICE_NAME,
-						module: MODULE,
-						apiName,
-						status: 200,
-						message: 'Booking updated successfully.',
-						data: updateResult,
-						traceId,
-						level: LOG_LEVELS.INFO,
-					});
-				}
 			}
+			const updateObj = {};
+			if (description) updateObj.description = description;
+			if (userName) updateObj.userName = userName;
+			if (facilityName) updateObj.facilityName = facilityName;
+			if (bookingDate) updateObj.bookingDate = bookingDate;
+			if (status) updateObj.status = status;
+			updateObj.updatedAt = new Date();
+
+			const updateResult = await mongo.findOneAndUpdate(mongoClient, MODULE, { _id: mongo.getObjectId(bookingId) }, updateObj);
+			if (!updateResult) {
+				res.status(500).send({
+					status: 500,
+					message: 'Booking not updated'
+				});
+
+				logger.log({
+					service: SERVICE_NAME,
+					module: MODULE,
+					apiName,
+					status: 500,
+					message: 'Booking not updated',
+					data: updateResult,
+					traceId,
+					level: LOG_LEVELS.ERROR,
+				});
+			}
+			
+			res.status(200).send({
+				status: 200,
+				message: 'Booking updated successfully.',
+				data: JSON.parse(JSON.stringify(updateResult)),
+			});
+
+			logger.log({
+				service: SERVICE_NAME,
+				module: MODULE,
+				apiName,
+				status: 200,
+				message: 'Booking updated successfully.',
+				data: updateResult,
+				traceId,
+				level: LOG_LEVELS.INFO,
+			});
 		} catch (err) {
 			const error = { message: err.message, stack: err.stack };
 			res.status(500).send({
@@ -508,6 +468,7 @@ module.exports = (app, config) => {
 		const { bookingId } = req.params;
 
 		console.log(`${apiName} is called at ${new Date()}`);
+
 		logger.log({
 			service: SERVICE_NAME,
 			module: MODULE,
@@ -523,51 +484,53 @@ module.exports = (app, config) => {
 			const requiredFields = [
 				'bookingId',
 			];
+
 			const config = {
 				traceId,
 				MODULE,
 				apiName,
 			};
+
 			if (!requiredCheck(req.params, requiredFields, res, config)) {
 				return;
-			} else {
-				const deleteResult = await mongo.deleteOne(mongoClient, MODULE, { _id: mongo.getObjectId(bookingId) });
-				if (deleteResult) {
-					res.status(200).send({
-						status: 200,
-						message: 'Booking deleted successfully.',
-						data: {
-							booking: deleteResult
-						},
-					});
-
-					logger.log({
-						service: SERVICE_NAME,
-						module: MODULE,
-						apiName,
-						status: 200,
-						message: 'Booking deleted successfully.',
-						data: deleteResult,
-						traceId,
-						level: LOG_LEVELS.INFO,
-					});
-				} else {
-					res.status(500).send({
-						status: 500,
-						message: 'Booking not deleted'
-					});
-
-					logger.log({
-						service: SERVICE_NAME,
-						module: MODULE,
-						apiName,
-						status: 500,
-						message: 'Booking not deleted',
-						traceId,
-						level: LOG_LEVELS.ERROR,
-					});
-				}
 			}
+			
+			const deleteResult = await mongo.deleteOne(mongoClient, MODULE, { _id: mongo.getObjectId(bookingId) });
+			if (!deleteResult) {
+				res.status(500).send({
+					status: 500,
+					message: 'Booking not deleted'
+				});
+
+				logger.log({
+					service: SERVICE_NAME,
+					module: MODULE,
+					apiName,
+					status: 500,
+					message: 'Booking not deleted',
+					traceId,
+					level: LOG_LEVELS.ERROR,
+				});
+			}
+
+			res.status(200).send({
+				status: 200,
+				message: 'Booking deleted successfully.',
+				data: {
+					booking: deleteResult
+				},
+			});
+
+			logger.log({
+				service: SERVICE_NAME,
+				module: MODULE,
+				apiName,
+				status: 200,
+				message: 'Booking deleted successfully.',
+				data: deleteResult,
+				traceId,
+				level: LOG_LEVELS.INFO,
+			});
 		} catch (err) {
 			const error = { message: err.message, stack: err.stack };
 			res.status(500).send({

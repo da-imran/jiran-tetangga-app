@@ -53,7 +53,7 @@ app.use((req, res, next) => {
 	try {
 		const secretsLoaded = await checkSecretObjectNull();
 		if (!secretsLoaded) {
-			console.error('❌ Critical secrets could not be loaded from Infisical. Exiting...');
+			console.error('Critical secrets could not be loaded from Infisical. Exiting...');
 			logger.log({
 				level: LOG_LEVELS.CRITICAL,
 				message: 'Critical secrets could not be loaded from Infisical. Exiting...',
@@ -93,7 +93,7 @@ app.use((req, res, next) => {
 			console.log(`🚀 Backend running in ${ENVIRONMENT} mode on http://${HOSTNAME}:${PORT}/${ROUTE_PREPEND}/${VERSION}`);
 		});
 	} catch (error) {
-		console.error('❌ Failed to start server:', error);
+		console.error('Failed to start server:', error);
 		logger.log({
 			level: LOG_LEVELS.CRITICAL,
 			message: error,

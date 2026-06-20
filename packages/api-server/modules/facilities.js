@@ -31,7 +31,6 @@ module.exports = (app, config) => {
 			level: LOG_LEVELS.INFO,
 		});
 		try {
-			// Pagination
 			const {
 				pageNumber = 1,
 				dataPerPage = 20,
@@ -40,7 +39,7 @@ module.exports = (app, config) => {
 			} = req.query;
 
 			if (!Number.isInteger(+pageNumber) || +pageNumber <= 0) {
-				console.log(`❌ ${apiName} Bad Request: Invalid page number`);
+				console.log(`${apiName} Bad Request: Invalid page number`);
 				res.status(400).send({
 					status: 400,
 					message: 'Bad Request: Invalid page number',
@@ -56,7 +55,7 @@ module.exports = (app, config) => {
 					level: LOG_LEVELS.ERROR,
 				});
 			} else if (!Number.isInteger(+dataPerPage) || +dataPerPage <= 0 || +dataPerPage > 100) {
-				console.log(`❌ ${apiName} Bad Request: Invalid number of data per page`);
+				console.log(`${apiName} Bad Request: Invalid number of data per page`);
 				res.status(400).send({
 					status: 400,
 					message: 'Bad Request: Invalid number of data per page',
@@ -71,114 +70,64 @@ module.exports = (app, config) => {
 					traceId,
 					level: LOG_LEVELS.ERROR,
 				});
-			} else {
-				const matchStage = {};
-				if (search && search.trim() !== '') {
-					const safeSearch = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-					matchStage.$or = [
-						{ name: { $regex: safeSearch, $options: 'i' } },
-						{ description: { $regex: safeSearch, $options: 'i' } },
-						{ location: { $regex: safeSearch, $options: 'i' } },
-					];
-				}
+			} 
 
-				if (typeof filters === 'string' && filters.trim() !== '') {
-					const filterArray = filters.split(',').map(f => f.trim());
-					matchStage.status = { $in: filterArray };
-				}
-				const aggregation = [
-					{ $match: matchStage },
-					{ $sort: { createdAt: -1 } },
-					{ $skip: (+pageNumber - 1) * (+dataPerPage) },
-					{ $limit: +dataPerPage },
-					{
-						$project: {
-							name: 1,
-							description: 1,
-							location: 1,
-							capacity: 1,
-							status: 1,
-							createdAt: 1,
-						},
-					}
+			const matchStage = {};
+			if (search && search.trim() !== '') {
+				const safeSearch = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+				matchStage.$or = [
+					{ name: { $regex: safeSearch, $options: 'i' } },
+					{ description: { $regex: safeSearch, $options: 'i' } },
+					{ location: { $regex: safeSearch, $options: 'i' } },
 				];
-
-				const countPipeline = [{ $match: matchStage }, { $count: 'total' }];
-				const [countResult, facilityResult] = await Promise.all([
-					mongo.aggregate(mongoClient, MODULE, countPipeline),
-					mongo.aggregate(mongoClient, MODULE, aggregation)
-				]);
-
-				// Always return 200 for list endpoints, even if empty
-
-
-				const totalCount = (countResult && countResult[0] && countResult[0].total) ? countResult[0].total : 0;
-
-
-
-				console.log(`${apiName} Response Success.`);
-
-
-				res.status(200).send({
-
-
-					status: 200,
-
-
-					data: facilityResult || [],
-
-
-					total: totalCount
-
-
-				});
-
-
-
-				logger.log({
-
-
-					service: SERVICE_NAME,
-
-
-					module: MODULE,
-
-
-					apiName,
-
-
-					status: 200,
-
-
-					message: 'Response Success',
-
-
-					data: facilityResult || [],
-
-
-					traceId,
-
-
-					level: LOG_LEVELS.INFO,
-
-
-				});
-				res.status(500).send({
-					status: 500,
-					message: `${apiName} error`,
-					error,
-				});
-
-				logger.log({
-					service: SERVICE_NAME,
-					module: MODULE,
-					apiName,
-					status: 500,
-					message: error,
-					traceId,
-					level: LOG_LEVELS.ERROR,
-				});
 			}
+
+			if (typeof filters === 'string' && filters.trim() !== '') {
+				const filterArray = filters.split(',').map(f => f.trim());
+				matchStage.status = { $in: filterArray };
+			}
+			const aggregation = [
+				{ $match: matchStage },
+				{ $sort: { createdAt: -1 } },
+				{ $skip: (+pageNumber - 1) * (+dataPerPage) },
+				{ $limit: +dataPerPage },
+				{
+					$project: {
+						name: 1,
+						description: 1,
+						location: 1,
+						capacity: 1,
+						status: 1,
+						createdAt: 1,
+					},
+				}
+			];
+
+			const countPipeline = [{ $match: matchStage }, { $count: 'total' }];
+			const [countResult, facilityResult] = await Promise.all([
+				mongo.aggregate(mongoClient, MODULE, countPipeline),
+				mongo.aggregate(mongoClient, MODULE, aggregation)
+			]);
+
+			const totalCount = (countResult && countResult[0] && countResult[0].total) ? countResult[0].total : 0;
+
+			console.log(`${apiName} Response Success.`);
+			res.status(200).send({
+				status: 200,
+				data: facilityResult || [],
+				total: totalCount
+			});
+
+			logger.log({
+				service: SERVICE_NAME,
+				module: MODULE,
+				apiName,
+				status: 200,
+				message: 'Response Success',
+				data: facilityResult || [],
+				traceId,
+				level: LOG_LEVELS.INFO,
+			});
 		} catch (err) {
 			const error = { message: err.message, stack: err.stack };
 			res.status(500).send({
@@ -231,61 +180,45 @@ module.exports = (app, config) => {
 			};
 			if (!requiredCheck(req.params, requiredFields, res, config)) {
 				return;
-			} else {
-				const facilityResult = await mongo.findOne(mongoClient, MODULE, { _id: mongo.getObjectId(facilityId) });
-				// Always return 200 for list endpoints, even if empty
-
-				const totalCount = (countResult && countResult[0] && countResult[0].total) ? countResult[0].total : 0;
-
-
-				console.log(`${apiName} Response Success.`);
-
-				res.status(200).send({
-
-					status: 200,
-
-					data: facilityResult || [],
-
-					total: totalCount
-
-				});
-
-
-				logger.log({
-
-					service: SERVICE_NAME,
-
-					module: MODULE,
-
-					apiName,
-
-					status: 200,
-
-					message: 'Response Success',
-
-					data: facilityResult || [],
-
-					traceId,
-
-					level: LOG_LEVELS.INFO,
-
-				});
-				res.status(500).send({
-					status: 500,
-					message: `${apiName} error`,
-					error,
+			}
+			
+			const facilityResult = await mongo.findOne(mongoClient, MODULE, { _id: mongo.getObjectId(facilityId) });
+			if (!facilityResult) {
+				console.log(`${apiName} Response Failed.`);
+				res.status(404).send({
+					status: 404,
+					message: 'Facility not found',
 				});
 
 				logger.log({
 					service: SERVICE_NAME,
 					module: MODULE,
 					apiName,
-					status: 500,
-					message: error,
+					status: 404,
+					message: 'Facility not found',
 					traceId,
 					level: LOG_LEVELS.ERROR,
 				});
 			}
+			const totalCount = (countResult && countResult[0] && countResult[0].total) ? countResult[0].total : 0;
+
+			console.log(`${apiName} Response Success.`);
+			res.status(200).send({
+				status: 200,
+				data: facilityResult || [],
+				total: totalCount
+			});
+
+			logger.log({
+				service: SERVICE_NAME,
+				module: MODULE,
+				apiName,
+				status: 200,
+				message: 'Response Success',
+				data: facilityResult || [],
+				traceId,
+				level: LOG_LEVELS.INFO,
+			});
 		} catch (err) {
 			const error = { message: err.message, stack: err.stack };
 			res.status(500).send({
@@ -346,52 +279,52 @@ module.exports = (app, config) => {
 			};
 			if (!requiredCheck(req.body, requiredFields, res, config)) {
 				return;
-			} else {
-				const inputFacility = {
-					name,
-					description,
-					location,
-					capacity,
-					status: 'active',
-					createdAt: new Date(),
-				};
-				const inputResult = await mongo.insertOne(mongoClient, MODULE, inputFacility);
-				if (inputResult) {
-					console.log(`${apiName} MongoDB Success.`);
-					res.status(200).json({
-						message: 'Facility created successfully',
-						_id: inputResult.insertedId,
-					});
-
-					logger.log({
-						service: SERVICE_NAME,
-						module: MODULE,
-						apiName,
-						status: 200,
-						message: 'Facility created successfully',
-						data: inputResult,
-						traceId,
-						level: LOG_LEVELS.INFO,
-					});
-				} else {
-					console.error('❌ Error creating Facility.');
-					res.status(500).send({
-						status: 500,
-						message: 'Error creating Facility.',
-					});
-
-					logger.log({
-						service: SERVICE_NAME,
-						module: MODULE,
-						apiName,
-						status: 500,
-						message: 'Error creating Facility.',
-						data: inputResult,
-						traceId,
-						level: LOG_LEVELS.ERROR,
-					});
-				}
 			}
+			
+			const inputFacility = {
+				name,
+				description,
+				location,
+				capacity,
+				status: 'active',
+				createdAt: new Date(),
+			};
+			const inputResult = await mongo.insertOne(mongoClient, MODULE, inputFacility);
+			if (!inputResult) {
+				console.error('Error creating Facility.');
+				res.status(500).send({
+					status: 500,
+					message: 'Error creating Facility.',
+				});
+
+				logger.log({
+					service: SERVICE_NAME,
+					module: MODULE,
+					apiName,
+					status: 500,
+					message: 'Error creating Facility.',
+					data: inputResult,
+					traceId,
+					level: LOG_LEVELS.ERROR,
+				});
+			} 
+			
+			console.log(`${apiName} MongoDB Success.`);
+			res.status(200).json({
+				message: 'Facility created successfully',
+				_id: inputResult.insertedId,
+			});
+
+			logger.log({
+				service: SERVICE_NAME,
+				module: MODULE,
+				apiName,
+				status: 200,
+				message: 'Facility created successfully',
+				data: inputResult,
+				traceId,
+				level: LOG_LEVELS.INFO,
+			});
 		} catch (err) {
 			const error = { message: err.message, stack: err.stack };
 			res.status(500).send({
@@ -451,51 +384,51 @@ module.exports = (app, config) => {
 			};
 			if (!requiredCheck(req.params, requiredFields, res, config)) {
 				return;
-			} else {
-				const updateObj = {};
-				if (name) updateObj.name = name;
-				if (description) updateObj.description = description;
-				if (location) updateObj.location = location;
-				if (capacity) updateObj.capacity = capacity;
-				if (status) updateObj.status = status;
-				updateObj.updatedAt = new Date();
-
-				const updateResult = await mongo.findOneAndUpdate(mongoClient, MODULE, { _id: mongo.getObjectId(facilityId) }, updateObj);
-				if (!updateResult) {
-					res.status(500).send({
-						status: 500,
-						message: 'Facility not updated'
-					});
-
-					logger.log({
-						service: SERVICE_NAME,
-						module: MODULE,
-						apiName,
-						status: 500,
-						message: 'Facility not updated',
-						data: updateResult,
-						traceId,
-						level: LOG_LEVELS.ERROR,
-					});
-				} else {
-					res.status(200).send({
-						status: 200,
-						message: 'Facility updated successfully.',
-						data: JSON.parse(JSON.stringify(updateResult)),
-					});
-
-					logger.log({
-						service: SERVICE_NAME,
-						module: MODULE,
-						apiName,
-						status: 200,
-						message: 'Facility updated successfully.',
-						data: updateResult,
-						traceId,
-						level: LOG_LEVELS.INFO,
-					});
-				}
 			}
+
+			const updateObj = {};
+			if (name) updateObj.name = name;
+			if (description) updateObj.description = description;
+			if (location) updateObj.location = location;
+			if (capacity) updateObj.capacity = capacity;
+			if (status) updateObj.status = status;
+			updateObj.updatedAt = new Date();
+
+			const updateResult = await mongo.findOneAndUpdate(mongoClient, MODULE, { _id: mongo.getObjectId(facilityId) }, updateObj);
+			if (!updateResult) {
+				res.status(500).send({
+					status: 500,
+					message: 'Facility not updated'
+				});
+
+				logger.log({
+					service: SERVICE_NAME,
+					module: MODULE,
+					apiName,
+					status: 500,
+					message: 'Facility not updated',
+					data: updateResult,
+					traceId,
+					level: LOG_LEVELS.ERROR,
+				});
+			} 
+				
+			res.status(200).send({
+				status: 200,
+				message: 'Facility updated successfully.',
+				data: JSON.parse(JSON.stringify(updateResult)),
+			});
+
+			logger.log({
+				service: SERVICE_NAME,
+				module: MODULE,
+				apiName,
+				status: 200,
+				message: 'Facility updated successfully.',
+				data: updateResult,
+				traceId,
+				level: LOG_LEVELS.INFO,
+			});
 		} catch (err) {
 			const error = { message: err.message, stack: err.stack };
 			res.status(500).send({
@@ -548,44 +481,43 @@ module.exports = (app, config) => {
 			};
 			if (!requiredCheck(req.params, requiredFields, res, config)) {
 				return;
-			} else {
-				const deleteResult = await mongo.deleteOne(mongoClient, MODULE, { _id: mongo.getObjectId(facilityId) });
-				if (deleteResult) {
-					res.status(200).send({
-						status: 200,
-						message: 'Facility deleted successfully.',
-						data: {
-							facility: deleteResult
-						},
-					});
-
-					logger.log({
-						service: SERVICE_NAME,
-						module: MODULE,
-						apiName,
-						status: 200,
-						message: 'Facility deleted successfully.',
-						data: deleteResult,
-						traceId,
-						level: LOG_LEVELS.INFO,
-					});
-				} else {
-					res.status(500).send({
-						status: 500,
-						message: 'Facility not deleted'
-					});
-
-					logger.log({
-						service: SERVICE_NAME,
-						module: MODULE,
-						apiName,
-						status: 500,
-						message: 'Facility not deleted',
-						traceId,
-						level: LOG_LEVELS.ERROR,
-					});
-				}
 			}
+
+			const deleteResult = await mongo.deleteOne(mongoClient, MODULE, { _id: mongo.getObjectId(facilityId) });
+			if (!deleteResult) {
+				res.status(500).send({
+					status: 500,
+					message: 'Facility not deleted'
+				});
+
+				logger.log({
+					service: SERVICE_NAME,
+					module: MODULE,
+					apiName,
+					status: 500,
+					message: 'Facility not deleted',
+					traceId,
+					level: LOG_LEVELS.ERROR,
+				});
+			}
+			res.status(200).send({
+				status: 200,
+				message: 'Facility deleted successfully.',
+				data: {
+					facility: deleteResult
+				},
+			});
+
+			logger.log({
+				service: SERVICE_NAME,
+				module: MODULE,
+				apiName,
+				status: 200,
+				message: 'Facility deleted successfully.',
+				data: deleteResult,
+				traceId,
+				level: LOG_LEVELS.INFO,
+			});
 		} catch (err) {
 			const error = { message: err.message, stack: err.stack };
 			res.status(500).send({

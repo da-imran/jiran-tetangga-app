@@ -10,7 +10,7 @@ const requiredCheck = (input, requiredFields, res, config) => {
 		const isEmptyString = typeof value === 'string' && value.trim() === '';
 
 		if (!hasField || value === null || value === undefined || isEmptyString) {
-			console.error(`❌ Bad request: ${field} is a required parameter.`);
+			console.error(`Bad request: ${field} is a required parameter.`);
 			res.status(400).send({
 				status: 400,
 				message: `Bad request: ${field} is a required parameter.`,
@@ -29,7 +29,7 @@ const requiredCheck = (input, requiredFields, res, config) => {
 
 		if (field.toLowerCase().endsWith('id')) {
 			if (!ObjectId.isValid(input[field])) {
-				console.error(`❌ Bad request: ${field} must be a valid ObjectId.`);
+				console.error(`Bad request: ${field} must be a valid ObjectId.`);
 				res.status(400).send({
 					status: 400,
 					message: `Bad request: ${field} must be a valid ObjectId.`,
@@ -54,7 +54,7 @@ const invalidFieldCheck = (input, invalidFields, res, config) => {
 	const { traceId, apiName, MODULE } = config;
 	for (const field of invalidFields) {
 		if (input[field]) {
-			console.error(`❌ Bad request: ${field} cannot be updated.`);
+			console.error(`Bad request: ${field} cannot be updated.`);
 			res.status(400).send({
 				status: 400,
 				message: `Bad request: ${field} cannot be updated.`,

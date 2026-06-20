@@ -31,8 +31,8 @@ module.exports = (app, config) => {
 			traceId,
 			level: LOG_LEVELS.INFO,
 		});
+		
 		try {
-			// Pagination
 			const {
 				pageNumber = 1,
 				dataPerPage = 20,
@@ -41,7 +41,7 @@ module.exports = (app, config) => {
 			} = req.query;
 
 			if (!Number.isInteger(+pageNumber) || +pageNumber <= 0) {
-				console.log(`❌ ${apiName} Bad Request: Invalid page number`);
+				console.log(`${apiName} Bad Request: Invalid page number`);
 				res.status(400).send({
 					status: 400,
 					message: 'Bad Request: Invalid page number',
@@ -57,7 +57,7 @@ module.exports = (app, config) => {
 					level: LOG_LEVELS.ERROR,
 				});
 			} else if (!Number.isInteger(+dataPerPage) || +dataPerPage <= 0 || +dataPerPage > 100) {
-				console.log(`❌ ${apiName} Bad Request: Invalid number of data per page`);
+				console.log(`${apiName} Bad Request: Invalid number of data per page`);
 				res.status(400).send({
 					status: 400,
 					message: 'Bad Request: Invalid number of data per page',
@@ -72,95 +72,58 @@ module.exports = (app, config) => {
 					traceId,
 					level: LOG_LEVELS.ERROR,
 				});
-			} else {
-				const matchStage = {};
-				if (search && search.trim() !== '') {
-					const safeSearch = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-					matchStage.name = { $regex: safeSearch, $options: 'i' };
-				}
-
-				if (typeof filters === 'string' && filters.trim() !== '') {
-					const filterArray = filters.split(',').map(f => f.trim());
-  					matchStage.status = { $in: filterArray };
-				}
-				const aggregation = [
-					{ $match: matchStage }, // Match
-					{ $sort: { createdAt : -1 } }, // Sort
-					{ $skip: (+pageNumber - 1) * (+dataPerPage) }, // Pagination
-					{ $limit: +dataPerPage },
-					// Projection
-					{
-						$project: {
-							name: 1,
-							description: 1,
-							status: 1,
-							openingHours: 1,
-							createdAt: 1,
-						},
-					}
-				];
-
-				const countPipeline = [{ $match: matchStage }, { $count: 'total' }];
-				const [countResult, contactResult] = await Promise.all([
-				  mongo.aggregate(mongoClient, MODULE, countPipeline),
-				  mongo.aggregate(mongoClient, MODULE, aggregation)
-				]);
-
-				// Always return 200 for list endpoints, even if empty
-
-
-				const totalCount = (countResult && countResult[0] && countResult[0].total) ? countResult[0].total : 0;
-
-
-
-				console.log(`${apiName} Response Success.`);
-
-
-				res.status(200).send({
-
-
-					status: 200,
-
-
-					data: contactResult || [],
-
-
-					total: totalCount
-
-
-				});
-
-
-
-				logger.log({
-
-
-					service: SERVICE_NAME,
-
-
-					module: MODULE,
-
-
-					apiName,
-
-
-					status: 200,
-
-
-					message: 'Response Success',
-
-
-					data: contactResult || [],
-
-
-					traceId,
-
-
-					level: LOG_LEVELS.INFO,
-
-
-				});
 			}
+				
+			const matchStage = {};
+			if (search && search.trim() !== '') {
+				const safeSearch = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+				matchStage.name = { $regex: safeSearch, $options: 'i' };
+			}
+
+			if (typeof filters === 'string' && filters.trim() !== '') {
+				const filterArray = filters.split(',').map(f => f.trim());
+				matchStage.status = { $in: filterArray };
+			}
+			const aggregation = [
+				{ $match: matchStage },
+				{ $sort: { createdAt : -1 } },
+				{ $skip: (+pageNumber - 1) * (+dataPerPage) },
+				{ $limit: +dataPerPage },
+				{
+					$project: {
+						name: 1,
+						description: 1,
+						status: 1,
+						openingHours: 1,
+						createdAt: 1,
+					},
+				}
+			];
+
+			const countPipeline = [{ $match: matchStage }, { $count: 'total' }];
+			const [countResult, contactResult] = await Promise.all([
+				mongo.aggregate(mongoClient, MODULE, countPipeline),
+				mongo.aggregate(mongoClient, MODULE, aggregation)
+			]);
+			const totalCount = (countResult && countResult[0] && countResult[0].total) ? countResult[0].total : 0;
+			console.log(`${apiName} Response Success.`);
+
+			res.status(200).send({
+				status: 200,
+				data: contactResult || [],
+				total: totalCount
+			});
+
+			logger.log({
+				service: SERVICE_NAME,
+				module: MODULE,
+				apiName,
+				status: 200,
+				message: 'Response Success',
+				data: contactResult || [],
+				traceId,
+				level: LOG_LEVELS.INFO,
+			});
 		} catch (err) {
 			const error = { message: err.message, stack: err.stack };
 			res.status(500).send({
@@ -206,69 +169,57 @@ module.exports = (app, config) => {
 			const requiredFields = [
 				'contactId',
 			];
+
 			const config = {
 				traceId,
 				MODULE,
 				apiName,
 			};
+
 			if (!requiredCheck(req.params, requiredFields, res, config)) {
 				return;
-			} else {
-				const contactResult = await mongo.findOne(mongoClient, MODULE, { _id: mongo.getObjectId(contactId) });
-				// Always return 200 for list endpoints, even if empty
-
-				const totalCount = (countResult && countResult[0] && countResult[0].total) ? countResult[0].total : 0;
-
-
-				console.log(`${apiName} Response Success.`);
-
-				res.status(200).send({
-
-					status: 200,
-
-					data: contactResult || [],
-
-					total: totalCount
-
+			}
+				
+			const contactResult = await mongo.findOne(mongoClient, MODULE, { _id: mongo.getObjectId(contactId) });
+			if (!contactResult) {
+				console.error('Contact not found');
+				res.status(500).send({
+					status: 500,
+					message: 'Contact not found',
 				});
-
 
 				logger.log({
-
 					service: SERVICE_NAME,
-
 					module: MODULE,
-
 					apiName,
-
-					status: 200,
-
-					message: 'Response Success',
-
-					data: contactResult || [],
-
+					status: 500,
+					message: 'Contact not found',
+					data: contactResult,
 					traceId,
-
-					level: LOG_LEVELS.INFO,
-
+					level: LOG_LEVELS.ERROR,
 				});
-			res.status(500).send({
-				status: 500,
-				message: `${apiName} error`,
-				error,
+			}
+
+			const totalCount = (countResult && countResult[0] && countResult[0].total) ? countResult[0].total : 0;
+			console.log(`${apiName} Response Success.`);
+
+			res.status(200).send({
+				status: 200,
+				data: contactResult || [],
+				total: totalCount
 			});
 
 			logger.log({
 				service: SERVICE_NAME,
 				module: MODULE,
 				apiName,
-				status: 500,
-				message: error,
+				status: 200,
+				message: 'Response Success',
+				data: contactResult || [],
 				traceId,
-				level: LOG_LEVELS.ERROR,
+				level: LOG_LEVELS.INFO,
 			});
-		}
-	} catch (err) {
+		} catch (err) {
 			const error = { message: err.message, stack: err.stack };
 			res.status(500).send({
 				status: 500,
@@ -317,58 +268,60 @@ module.exports = (app, config) => {
 				'name',
 				'number',
 			];
+
 			const config = {
 				traceId,
 				MODULE,
 				apiName,
 			};
+
 			if (!requiredCheck(req.body, requiredFields, res, config)) {
 				return;
-			} else {
-				// 🔎 Proceed to create contact
-				const inputContact = {
-					name,
-					number,
-					status: 'inactive', // Default status
-					createdAt: new Date(),
-				};
-				const inputResult = await mongo.insertOne(mongoClient, MODULE, inputContact);
-				if (inputResult) {
-					console.log(`${apiName} MongoDB Success.`);
-					res.status(200).json({
-						message: 'Contact created successfully',
-						_id: inputResult.insertedId,
-					});
-
-					logger.log({
-						service: SERVICE_NAME,
-						module: MODULE,
-						apiName,
-						status: 200,
-						message: 'Contact created successfully',
-						data: inputResult,
-						traceId,
-						level: LOG_LEVELS.INFO,
-					});
-				} else {
-					console.error('❌ Error creating Contact.');
-					res.status(500).send({
-						status: 500,
-						message: 'Error creating Contact.',
-					});
-
-					logger.log({
-						service: SERVICE_NAME,
-						module: MODULE,
-						apiName,
-						status: 500,
-						message: 'Error creating Contact.',
-						data: inputResult,
-						traceId,
-						level: LOG_LEVELS.ERROR,
-					});
-				}
 			}
+				
+			const inputContact = {
+				name,
+				number,
+				status: 'inactive',
+				createdAt: new Date(),
+			};
+
+			const inputResult = await mongo.insertOne(mongoClient, MODULE, inputContact);
+			if (!inputResult) {
+				console.error('Error creating Contact.');
+				res.status(500).send({
+					status: 500,
+					message: 'Error creating Contact.',
+				});
+
+				logger.log({
+					service: SERVICE_NAME,
+					module: MODULE,
+					apiName,
+					status: 500,
+					message: 'Error creating Contact.',
+					data: inputResult,
+					traceId,
+					level: LOG_LEVELS.ERROR,
+				});
+			}
+
+			console.log(`${apiName} MongoDB Success.`);
+			res.status(200).json({
+				message: 'Contact created successfully',
+				_id: inputResult.insertedId,
+			});
+
+			logger.log({
+				service: SERVICE_NAME,
+				module: MODULE,
+				apiName,
+				status: 200,
+				message: 'Contact created successfully',
+				data: inputResult,
+				traceId,
+				level: LOG_LEVELS.INFO,
+			});
 		} catch (err) {
 			const error = { message: err.message, stack: err.stack };
 			res.status(500).send({
@@ -419,56 +372,58 @@ module.exports = (app, config) => {
 			const requiredFields = [
 				'contactId',
 			];
+
 			const config = {
 				traceId,
 				MODULE,
 				apiName,
 			};
+
 			if (!requiredCheck(req.params, requiredFields, res, config)) {
 				return;
-			} else {
-				const updateObj = {};
-				if (name) updateObj.name = name;
-				if (number) updateObj.number = number;
-				if (status) updateObj.status = status;
-				updateObj.updatedAt = new Date();
+			} 
+				
+			const updateObj = {};
+			if (name) updateObj.name = name;
+			if (number) updateObj.number = number;
+			if (status) updateObj.status = status;
+			updateObj.updatedAt = new Date();
 
-				const updateResult = await mongo.findOneAndUpdate(mongoClient, MODULE, { _id: mongo.getObjectId(contactId) }, updateObj);
-				if (!updateResult) {
-					res.status(500).send({
-						status: 500,
-						message: 'Contact not updated'
-					});
+			const updateResult = await mongo.findOneAndUpdate(mongoClient, MODULE, { _id: mongo.getObjectId(contactId) }, updateObj);
+			if (!updateResult) {
+				res.status(500).send({
+					status: 500,
+					message: 'Contact not updated'
+				});
 
-					logger.log({
-						service: SERVICE_NAME,
-						module: MODULE,
-						apiName,
-						status: 500,
-						message: 'Contact not updated',
-						data: updateResult,
-						traceId,
-						level: LOG_LEVELS.ERROR,
-					});
-				} else {
-					res.status(200).send({
-						status: 200,
-						message: 'Contact updated successfully.',
-						data: JSON.parse(JSON.stringify(updateResult)),
-					});
+				logger.log({
+					service: SERVICE_NAME,
+					module: MODULE,
+					apiName,
+					status: 500,
+					message: 'Contact not updated',
+					data: updateResult,
+					traceId,
+					level: LOG_LEVELS.ERROR,
+				});
+			} 
+				
+			res.status(200).send({
+				status: 200,
+				message: 'Contact updated successfully.',
+				data: JSON.parse(JSON.stringify(updateResult)),
+			});
 
-					logger.log({
-						service: SERVICE_NAME,
-						module: MODULE,
-						apiName,
-						status: 200,
-						message: 'Contact updated successfully.',
-						data: updateResult,
-						traceId,
-						level: LOG_LEVELS.INFO,
-					});
-				}
-			}
+			logger.log({
+				service: SERVICE_NAME,
+				module: MODULE,
+				apiName,
+				status: 200,
+				message: 'Contact updated successfully.',
+				data: updateResult,
+				traceId,
+				level: LOG_LEVELS.INFO,
+			});
 		} catch (err) {
 			const error = { message: err.message, stack: err.stack };
 			res.status(500).send({
@@ -514,51 +469,53 @@ module.exports = (app, config) => {
 			const requiredFields = [
 				'contactId',
 			];
+
 			const config = {
 				traceId,
 				MODULE,
 				apiName,
 			};
+			
 			if (!requiredCheck(req.params, requiredFields, res, config)) {
 				return;
-			} else {
-				const deleteResult = await mongo.deleteOne(mongoClient, MODULE, { _id: mongo.getObjectId(contactId) });
-				if (deleteResult) {
-					res.status(200).send({
-						status: 200,
-						message: 'Contact deleted successfully.',
-						data: {
-							contact: deleteResult
-						},
-					});
-
-					logger.log({
-						service: SERVICE_NAME,
-						module: MODULE,
-						apiName,
-						status: 200,
-						message: 'Contact deleted successfully.',
-						data: deleteResult,
-						traceId,
-						level: LOG_LEVELS.INFO,
-					});
-				} else {
-					res.status(500).send({
-						status: 500,
-						message: 'Contact not deleted'
-					});
-
-					logger.log({
-						service: SERVICE_NAME,
-						module: MODULE,
-						apiName,
-						status: 500,
-						message: 'Contact not deleted',
-						traceId,
-						level: LOG_LEVELS.ERROR,
-					});
-				}
 			}
+				
+			const deleteResult = await mongo.deleteOne(mongoClient, MODULE, { _id: mongo.getObjectId(contactId) });
+			if (!deleteResult) {
+				res.status(500).send({
+					status: 500,
+					message: 'Contact not deleted'
+				});
+
+				logger.log({
+					service: SERVICE_NAME,
+					module: MODULE,
+					apiName,
+					status: 500,
+					message: 'Contact not deleted',
+					traceId,
+					level: LOG_LEVELS.ERROR,
+				});
+			} 
+
+			res.status(200).send({
+				status: 200,
+				message: 'Contact deleted successfully.',
+				data: {
+					contact: deleteResult
+				},
+			});
+
+			logger.log({
+				service: SERVICE_NAME,
+				module: MODULE,
+				apiName,
+				status: 200,
+				message: 'Contact deleted successfully.',
+				data: deleteResult,
+				traceId,
+				level: LOG_LEVELS.INFO,
+			});
 		} catch (err) {
 			const error = { message: err.message, stack: err.stack };
 			res.status(500).send({

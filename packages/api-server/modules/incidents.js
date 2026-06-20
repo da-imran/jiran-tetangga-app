@@ -42,7 +42,7 @@ module.exports = (app, config) => {
 			} = req.query;
 
 			if (!Number.isInteger(+pageNumber) || +pageNumber <= 0) {
-				console.log(`❌ ${apiName} Bad Request: Invalid page number`);
+				console.log(`${apiName} Bad Request: Invalid page number`);
 				res.status(400).send({
 					status: 400,
 					message: 'Bad Request: Invalid page number',
@@ -58,7 +58,7 @@ module.exports = (app, config) => {
 					level: LOG_LEVELS.ERROR,
 				});
 			} else if (!Number.isInteger(+dataPerPage) || +dataPerPage <= 0 || +dataPerPage > 100) {
-				console.log(`❌ ${apiName} Bad Request: Invalid number of data per page`);
+				console.log(`${apiName} Bad Request: Invalid number of data per page`);
 				res.status(400).send({
 					status: 400,
 					message: 'Bad Request: Invalid number of data per page',
@@ -73,128 +73,78 @@ module.exports = (app, config) => {
 					traceId,
 					level: LOG_LEVELS.ERROR,
 				});
-			} else {
-				const matchStage = {};
-
-				if (search && search.trim() !== '') {
-					const safeSearch = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-					matchStage.$or = [
-						{ title: { $regex: safeSearch, $options: 'i' } },
-						{ description: { $regex: safeSearch, $options: 'i' } },
-					];
-				}
-
-				if (typeof type === 'string' && type.trim() !== '') {
-					const typeArray = type.split(',').map(t => t.trim());
-					matchStage.type = { $in: typeArray };
-				}
-
-				if (typeof severity === 'string' && severity.trim() !== '') {
-					matchStage.severity = severity;
-				}
-
-				if (typeof filters === 'string' && filters.trim() !== '') {
-					const filterArray = filters.split(',').map(f => f.trim());
-					matchStage.status = { $in: filterArray };
-				}
-
-				const aggregation = [
-					{ $match: matchStage },
-					{ $sort: { createdAt: -1 } },
-					{ $skip: (+pageNumber - 1) * (+dataPerPage) },
-					{ $limit: +dataPerPage },
-					{
-						$project: {
-							title: 1,
-							description: 1,
-							type: 1,
-							severity: 1,
-							lat: 1,
-							lng: 1,
-							reports: 1,
-							status: 1,
-							createdAt: 1,
-							updatedAt: 1,
-						},
-					}
-				];
-
-				const countPipeline = [{ $match: matchStage }, { $count: 'total' }];
-				const [countResult, incidentResult] = await Promise.all([
-					mongo.aggregate(mongoClient, MODULE, countPipeline),
-					mongo.aggregate(mongoClient, MODULE, aggregation)
-				]);
-
-				// Always return 200 for list endpoints, even if empty
-
-
-				const totalCount = (countResult && countResult[0] && countResult[0].total) ? countResult[0].total : 0;
-
-
-
-				console.log(`${apiName} Response Success.`);
-
-
-				res.status(200).send({
-
-
-					status: 200,
-
-
-					data: incidentResult || [],
-
-
-					total: totalCount
-
-
-				});
-
-
-
-				logger.log({
-
-
-					service: SERVICE_NAME,
-
-
-					module: MODULE,
-
-
-					apiName,
-
-
-					status: 200,
-
-
-					message: 'Response Success',
-
-
-					data: incidentResult || [],
-
-
-					traceId,
-
-
-					level: LOG_LEVELS.INFO,
-
-
-				});
-				res.status(500).send({
-					status: 500,
-					message: `${apiName} error`,
-					error,
-				});
-
-				logger.log({
-					service: SERVICE_NAME,
-					module: MODULE,
-					apiName,
-					status: 500,
-					message: error,
-					traceId,
-					level: LOG_LEVELS.ERROR,
-				});
 			} 
+
+			const matchStage = {};
+
+			if (search && search.trim() !== '') {
+				const safeSearch = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+				matchStage.$or = [
+					{ title: { $regex: safeSearch, $options: 'i' } },
+					{ description: { $regex: safeSearch, $options: 'i' } },
+				];
+			}
+
+			if (typeof type === 'string' && type.trim() !== '') {
+				const typeArray = type.split(',').map(t => t.trim());
+				matchStage.type = { $in: typeArray };
+			}
+
+			if (typeof severity === 'string' && severity.trim() !== '') {
+				matchStage.severity = severity;
+			}
+
+			if (typeof filters === 'string' && filters.trim() !== '') {
+				const filterArray = filters.split(',').map(f => f.trim());
+				matchStage.status = { $in: filterArray };
+			}
+
+			const aggregation = [
+				{ $match: matchStage },
+				{ $sort: { createdAt: -1 } },
+				{ $skip: (+pageNumber - 1) * (+dataPerPage) },
+				{ $limit: +dataPerPage },
+				{
+					$project: {
+						title: 1,
+						description: 1,
+						type: 1,
+						severity: 1,
+						lat: 1,
+						lng: 1,
+						reports: 1,
+						status: 1,
+						createdAt: 1,
+						updatedAt: 1,
+					},
+				}
+			];
+
+			const countPipeline = [{ $match: matchStage }, { $count: 'total' }];
+			const [countResult, incidentResult] = await Promise.all([
+				mongo.aggregate(mongoClient, MODULE, countPipeline),
+				mongo.aggregate(mongoClient, MODULE, aggregation)
+			]);
+			const totalCount = (countResult && countResult[0] && countResult[0].total) ? countResult[0].total : 0;
+
+			console.log(`${apiName} Response Success.`);
+
+			res.status(200).send({
+				status: 200,
+				data: incidentResult || [],
+				total: totalCount
+			});
+
+			logger.log({
+				service: SERVICE_NAME,
+				module: MODULE,
+				apiName,
+				status: 200,
+				message: 'Response Success',
+				data: incidentResult || [],
+				traceId,
+				level: LOG_LEVELS.INFO,
+			});
 		} catch (err) {
 			const error = { message: err.message, stack: err.stack };
 			res.status(500).send({
@@ -247,45 +197,10 @@ module.exports = (app, config) => {
 			};
 			if (!requiredCheck(req.params, requiredFields, res, config)) {
 				return;
-			} else {
-				const incidentResult = await mongo.findOne(mongoClient, MODULE, { _id: mongo.getObjectId(incidentId) });
-				// Always return 200 for list endpoints, even if empty
+			}
 
-				const totalCount = (countResult && countResult[0] && countResult[0].total) ? countResult[0].total : 0;
-
-
-				console.log(`${apiName} Response Success.`);
-
-				res.status(200).send({
-
-					status: 200,
-
-					data: incidentResult || [],
-
-					total: totalCount
-
-				});
-
-
-				logger.log({
-
-					service: SERVICE_NAME,
-
-					module: MODULE,
-
-					apiName,
-
-					status: 200,
-
-					message: 'Response Success',
-
-					data: incidentResult || [],
-
-					traceId,
-
-					level: LOG_LEVELS.INFO,
-
-				});
+			const incidentResult = await mongo.findOne(mongoClient, MODULE, { _id: mongo.getObjectId(incidentId) });
+			if (!incidentResult) {
 				res.status(500).send({
 					status: 500,
 					message: `${apiName} error`,
@@ -302,6 +217,26 @@ module.exports = (app, config) => {
 					level: LOG_LEVELS.ERROR,
 				});
 			}
+
+			const totalCount = (countResult && countResult[0] && countResult[0].total) ? countResult[0].total : 0;
+
+			console.log(`${apiName} Response Success.`);
+			res.status(200).send({
+				status: 200,
+				data: incidentResult || [],
+				total: totalCount
+			});
+
+			logger.log({
+				service: SERVICE_NAME,
+				module: MODULE,
+				apiName,
+				status: 200,
+				message: 'Response Success',
+				data: incidentResult || [],
+				traceId,
+				level: LOG_LEVELS.INFO,
+			});
 		} catch (err) {
 			const error = { message: err.message, stack: err.stack };
 			res.status(500).send({
@@ -366,84 +301,81 @@ module.exports = (app, config) => {
 			};
 			if (!requiredCheck(req.body, requiredFields, res, config)) {
 				return;
-			} else {
-				// Validate type enum
-				const validTypes = ['pothole', 'flood', 'streetlight', 'crime', 'traffic'];
-				if (!validTypes.includes(type)) {
-					res.status(400).send({
-						status: 400,
-						message: 'Bad request: invalid type value',
-					});
-					return;
-				}
-
-				// Validate severity enum
-				const validSeverities = ['low', 'medium', 'high'];
-				if (!validSeverities.includes(severity)) {
-					res.status(400).send({
-						status: 400,
-						message: 'Bad request: invalid severity value',
-					});
-					return;
-				}
-
-				// Validate lat/lng are numbers
-				if (typeof lat !== 'number' || typeof lng !== 'number') {
-					res.status(400).send({
-						status: 400,
-						message: 'Bad request: lat and lng must be numbers',
-					});
-					return;
-				}
-
-				const inputIncident = {
-					title,
-					description,
-					type,
-					severity,
-					lat,
-					lng,
-					reports: 1,
-					status: 'pending',
-					createdAt: new Date(),
-				};
-				const inputResult = await mongo.insertOne(mongoClient, MODULE, inputIncident);
-				if (inputResult) {
-					console.log(`${apiName} MongoDB Success.`);
-					res.status(200).json({
-						message: 'Incident created successfully',
-						_id: inputResult.insertedId,
-					});
-
-					logger.log({
-						service: SERVICE_NAME,
-						module: MODULE,
-						apiName,
-						status: 200,
-						message: 'Incident created successfully',
-						data: inputResult,
-						traceId,
-						level: LOG_LEVELS.INFO,
-					});
-				} else {
-					console.error('❌ Error creating Incident.');
-					res.status(500).send({
-						status: 500,
-						message: 'Error creating Incident.',
-					});
-
-					logger.log({
-						service: SERVICE_NAME,
-						module: MODULE,
-						apiName,
-						status: 500,
-						message: 'Error creating Incident.',
-						data: inputResult,
-						traceId,
-						level: LOG_LEVELS.ERROR,
-					});
-				}
 			}
+
+			const validTypes = ['pothole', 'flood', 'streetlight', 'crime', 'traffic'];
+			if (!validTypes.includes(type)) {
+				res.status(400).send({
+					status: 400,
+					message: 'Bad request: invalid type value',
+				});
+				return;
+			}
+
+			const validSeverities = ['low', 'medium', 'high'];
+			if (!validSeverities.includes(severity)) {
+				res.status(400).send({
+					status: 400,
+					message: 'Bad request: invalid severity value',
+				});
+				return;
+			}
+
+			if (typeof lat !== 'number' || typeof lng !== 'number') {
+				res.status(400).send({
+					status: 400,
+					message: 'Bad request: lat and lng must be numbers',
+				});
+				return;
+			}
+
+			const inputIncident = {
+				title,
+				description,
+				type,
+				severity,
+				lat,
+				lng,
+				reports: 1,
+				status: 'pending',
+				createdAt: new Date(),
+			};
+			const inputResult = await mongo.insertOne(mongoClient, MODULE, inputIncident);
+			if (!inputResult) {
+				console.error('Error creating Incident.');
+				res.status(500).send({
+					status: 500,
+					message: 'Error creating Incident.',
+				});
+
+				logger.log({
+					service: SERVICE_NAME,
+					module: MODULE,
+					apiName,
+					status: 500,
+					message: 'Error creating Incident.',
+					data: inputResult,
+					traceId,
+					level: LOG_LEVELS.ERROR,
+				});
+			}
+
+			console.log(`${apiName} MongoDB Success.`);
+			res.status(200).json({
+				message: 'Incident created successfully',
+				_id: inputResult.insertedId,
+			});
+
+			logger.log({
+				service: SERVICE_NAME,
+				module: MODULE,
+				apiName,
+				status: 200,
+				message: 'Incident created successfully',
+				data: inputResult,
+				traceId,
+				level: LOG_LEVELS.INFO,
+			});
 		} catch (err) {
 			const error = { message: err.message, stack: err.stack };
 			res.status(500).send({
@@ -505,53 +437,53 @@ module.exports = (app, config) => {
 			};
 			if (!requiredCheck(req.params, requiredFields, res, config)) {
 				return;
-			} else {
-				const updateObj = {};
-				if (title) updateObj.title = title;
-				if (description) updateObj.description = description;
-				if (type) updateObj.type = type;
-				if (severity) updateObj.severity = severity;
-				if (lat !== undefined) updateObj.lat = lat;
-				if (lng !== undefined) updateObj.lng = lng;
-				if (status) updateObj.status = status;
-				updateObj.updatedAt = new Date();
-
-				const updateResult = await mongo.findOneAndUpdate(mongoClient, MODULE, { _id: mongo.getObjectId(incidentId) }, updateObj);
-				if (!updateResult) {
-					res.status(500).send({
-						status: 500,
-						message: 'Incident not updated'
-					});
-
-					logger.log({
-						service: SERVICE_NAME,
-						module: MODULE,
-						apiName,
-						status: 500,
-						message: 'Incident not updated',
-						data: updateResult,
-						traceId,
-						level: LOG_LEVELS.ERROR,
-					});
-				} else {
-					res.status(200).send({
-						status: 200,
-						message: 'Incident updated successfully.',
-						data: JSON.parse(JSON.stringify(updateResult)),
-					});
-
-					logger.log({
-						service: SERVICE_NAME,
-						module: MODULE,
-						apiName,
-						status: 200,
-						message: 'Incident updated successfully.',
-						data: updateResult,
-						traceId,
-						level: LOG_LEVELS.INFO,
-					});
-				}
 			}
+
+			const updateObj = {};
+			if (title) updateObj.title = title;
+			if (description) updateObj.description = description;
+			if (type) updateObj.type = type;
+			if (severity) updateObj.severity = severity;
+			if (lat !== undefined) updateObj.lat = lat;
+			if (lng !== undefined) updateObj.lng = lng;
+			if (status) updateObj.status = status;
+			updateObj.updatedAt = new Date();
+
+			const updateResult = await mongo.findOneAndUpdate(mongoClient, MODULE, { _id: mongo.getObjectId(incidentId) }, updateObj);
+			if (!updateResult) {
+				res.status(500).send({
+					status: 500,
+					message: 'Incident not updated'
+				});
+
+				logger.log({
+					service: SERVICE_NAME,
+					module: MODULE,
+					apiName,
+					status: 500,
+					message: 'Incident not updated',
+					data: updateResult,
+					traceId,
+					level: LOG_LEVELS.ERROR,
+				});
+			}
+
+			res.status(200).send({
+				status: 200,
+				message: 'Incident updated successfully.',
+				data: JSON.parse(JSON.stringify(updateResult)),
+			});
+
+			logger.log({
+				service: SERVICE_NAME,
+				module: MODULE,
+				apiName,
+				status: 200,
+				message: 'Incident updated successfully.',
+				data: updateResult,
+				traceId,
+				level: LOG_LEVELS.INFO,
+			});
 		} catch (err) {
 			const error = { message: err.message, stack: err.stack };
 			res.status(500).send({
@@ -604,44 +536,44 @@ module.exports = (app, config) => {
 			};
 			if (!requiredCheck(req.params, requiredFields, res, config)) {
 				return;
-			} else {
-				const deleteResult = await mongo.deleteOne(mongoClient, MODULE, { _id: mongo.getObjectId(incidentId) });
-				if (deleteResult) {
-					res.status(200).send({
-						status: 200,
-						message: 'Incident deleted successfully.',
-						data: {
-							incident: deleteResult
-						},
-					});
-
-					logger.log({
-						service: SERVICE_NAME,
-						module: MODULE,
-						apiName,
-						status: 200,
-						message: 'Incident deleted successfully.',
-						data: deleteResult,
-						traceId,
-						level: LOG_LEVELS.INFO,
-					});
-				} else {
-					res.status(500).send({
-						status: 500,
-						message: 'Incident not deleted'
-					});
-
-					logger.log({
-						service: SERVICE_NAME,
-						module: MODULE,
-						apiName,
-						status: 500,
-						message: 'Incident not deleted',
-						traceId,
-						level: LOG_LEVELS.ERROR,
-					});
-				}
 			}
+
+			const deleteResult = await mongo.deleteOne(mongoClient, MODULE, { _id: mongo.getObjectId(incidentId) });
+			if (!deleteResult) {
+				res.status(500).send({
+					status: 500,
+					message: 'Incident not deleted'
+				});
+
+				logger.log({
+					service: SERVICE_NAME,
+					module: MODULE,
+					apiName,
+					status: 500,
+					message: 'Incident not deleted',
+					traceId,
+					level: LOG_LEVELS.ERROR,
+				});
+			}
+				
+			res.status(200).send({
+				status: 200,
+				message: 'Incident deleted successfully.',
+				data: {
+					incident: deleteResult
+				},
+			});
+
+			logger.log({
+				service: SERVICE_NAME,
+				module: MODULE,
+				apiName,
+				status: 200,
+				message: 'Incident deleted successfully.',
+				data: deleteResult,
+				traceId,
+				level: LOG_LEVELS.INFO,
+			});
 		} catch (err) {
 			const error = { message: err.message, stack: err.stack };
 			res.status(500).send({
@@ -694,48 +626,48 @@ module.exports = (app, config) => {
 			};
 			if (!requiredCheck(req.params, requiredFields, res, config)) {
 				return;
-			} else {
-				const updateResult = await mongo.findOneAndUpdate(
-					mongoClient,
-					MODULE,
-					{ _id: mongo.getObjectId(incidentId) },
-					{ $inc: { reports: 1 }, updatedAt: new Date() }
-				);
-				if (!updateResult) {
-					res.status(500).send({
-						status: 500,
-						message: 'Incident not updated'
-					});
-
-					logger.log({
-						service: SERVICE_NAME,
-						module: MODULE,
-						apiName,
-						status: 500,
-						message: 'Incident not updated',
-						data: updateResult,
-						traceId,
-						level: LOG_LEVELS.ERROR,
-					});
-				} else {
-					res.status(200).send({
-						status: 200,
-						message: 'Incident reported successfully.',
-						data: JSON.parse(JSON.stringify(updateResult)),
-					});
-
-					logger.log({
-						service: SERVICE_NAME,
-						module: MODULE,
-						apiName,
-						status: 200,
-						message: 'Incident reported successfully.',
-						data: updateResult,
-						traceId,
-						level: LOG_LEVELS.INFO,
-					});
-				}
 			}
+
+			const updateResult = await mongo.findOneAndUpdate(
+				mongoClient,
+				MODULE,
+				{ _id: mongo.getObjectId(incidentId) },
+				{ $inc: { reports: 1 }, updatedAt: new Date() }
+			);
+			if (!updateResult) {
+				res.status(500).send({
+					status: 500,
+					message: 'Incident not updated'
+				});
+
+				logger.log({
+					service: SERVICE_NAME,
+					module: MODULE,
+					apiName,
+					status: 500,
+					message: 'Incident not updated',
+					data: updateResult,
+					traceId,
+					level: LOG_LEVELS.ERROR,
+				});
+			}
+
+			res.status(200).send({
+				status: 200,
+				message: 'Incident reported successfully.',
+				data: JSON.parse(JSON.stringify(updateResult)),
+			});
+
+			logger.log({
+				service: SERVICE_NAME,
+				module: MODULE,
+				apiName,
+				status: 200,
+				message: 'Incident reported successfully.',
+				data: updateResult,
+				traceId,
+				level: LOG_LEVELS.INFO,
+			});
 		} catch (err) {
 			const error = { message: err.message, stack: err.stack };
 			res.status(500).send({

@@ -32,7 +32,6 @@ module.exports = (app, config) => {
 		});
 
 		try {
-			// Pagination
 			const {
 				pageNumber = 1,
 				dataPerPage = 20,
@@ -41,7 +40,7 @@ module.exports = (app, config) => {
 			} = req.query;
 
 			if (!Number.isInteger(+pageNumber) || +pageNumber <= 0) {
-				console.log(`❌ ${apiName} Bad Request: Invalid page number`);
+				console.log(`${apiName} Bad Request: Invalid page number`);
 				res.status(400).send({
 					status: 400,
 					message: 'Bad Request: Invalid page number',
@@ -57,7 +56,7 @@ module.exports = (app, config) => {
 					level: LOG_LEVELS.ERROR,
 				});
 			} else if (!Number.isInteger(+dataPerPage) || +dataPerPage <= 0 || +dataPerPage > 100) {
-				console.log(`❌ ${apiName} Bad Request: Invalid number of data per page`);
+				console.log(`${apiName} Bad Request: Invalid number of data per page`);
 				res.status(400).send({
 					status: 400,
 					message: 'Bad Request: Invalid number of data per page',
@@ -90,11 +89,10 @@ module.exports = (app, config) => {
 				}
 
 				const aggregation = [
-					{ $match: matchStage }, // Match
-					{ $sort: { createdAt: -1 } }, // Sort
-					{ $skip: (+pageNumber - 1) * (+dataPerPage) }, // Pagination
+					{ $match: matchStage },
+					{ $sort: { createdAt: -1 } },
+					{ $skip: (+pageNumber - 1) * (+dataPerPage) },
 					{ $limit: +dataPerPage },
-					// Projection
 					{
 						$project: {
 							_id: 1,
@@ -140,7 +138,7 @@ module.exports = (app, config) => {
 						level: LOG_LEVELS.INFO,
 					});
 				} else {
-					console.log(`❌ ${apiName} Response Failed.`);
+					console.log(`${apiName} Response Failed.`);
 					res.status(404).send({
 						status: 404,
 						message: 'Lost/found items not found',
@@ -230,7 +228,7 @@ module.exports = (app, config) => {
 						level: LOG_LEVELS.INFO,
 					});
 				} else {
-					console.log(`❌ ${apiName} Response Failed.`);
+					console.log(`${apiName} Response Failed.`);
 					res.status(404).send({
 						status: 404,
 						message: 'Lost/found item not found',
@@ -367,7 +365,7 @@ module.exports = (app, config) => {
 						level: LOG_LEVELS.INFO,
 					});
 				} else {
-					console.error('❌ Error creating LostFound.');
+					console.error('Error creating LostFound.');
 					res.status(500).send({
 						status: 500,
 						message: 'Error creating LostFound.',
