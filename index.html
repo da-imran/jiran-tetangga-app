@@ -272,6 +272,61 @@
   }
   @media (max-width: 600px){ .steps li{ grid-template-columns:1fr; } .step-num{ margin-bottom:4px; } }
 
+  /* ---------- faq ---------- */
+  .faq{
+    background:var(--mist);
+  }
+  .faq-item{
+    border-bottom:1px solid var(--line);
+    padding:24px 0;
+  }
+  .faq-item:last-child{
+    border-bottom:none;
+  }
+  .faq-question{
+    font-family:var(--font-display);
+    font-size:1.1rem;
+    font-weight:600;
+    color:var(--ink);
+    margin-bottom:12px;
+    display:flex;
+    align-items:center;
+    gap:8px;
+    cursor:pointer;
+    user-select:none;
+  }
+  .faq-question::before{
+    content:"";
+    width:12px;
+    height:12px;
+    border-radius:50%;
+    background:var(--brick);
+    display:inline-block;
+    transition:transform 0.2s ease;
+  }
+  .faq-item.active .faq-question::before{
+    transform:rotate(45deg);
+  }
+  .faq-answer{
+    color:var(--ink-soft);
+    font-size:0.94rem;
+    line-height:1.7;
+    max-height:0;
+    overflow:hidden;
+    transition:max-height 0.3s ease;
+    opacity:0;
+  }
+  .faq-item.active .faq-answer{
+    max-height:200px;
+    opacity:1;
+    transition:max-height 0.3s ease, opacity 0.3s ease;
+  }
+  @media (max-width: 600px){
+    .faq-item{
+      padding:16px 0;
+    }
+  }
+
   /* ---------- footer ---------- */
   .site-footer{ padding:56px 0 0; }
   .footer-inner{ display:flex; justify-content:space-between; gap:40px; flex-wrap:wrap; padding-bottom:40px; }
@@ -307,6 +362,7 @@
       <a href="#stack">Stack</a>
       <a href="#packages">Packages</a>
       <a href="#start">Get started</a>
+      <a href="#faq">FAQ</a>
     </nav>
     <button class="nav-toggle" id="nav-toggle" aria-label="Toggle navigation menu" aria-expanded="false" aria-controls="site-nav">
       <span></span><span></span><span></span>
@@ -389,27 +445,6 @@
           <circle cx="880" cy="158" r="4" fill="#9C5436"/>
         </svg>
       </div>
-    </div>
-
-    <div class="titleblock wrap">
-      <dl class="titleblock-grid">
-        <div>
-          <dt>Type</dt>
-          <dd>Community management platform</dd>
-        </div>
-        <div>
-          <dt>Workspace</dt>
-          <dd>pnpm monorepo · 4 packages</dd>
-        </div>
-        <div>
-          <dt>Core stack</dt>
-          <dd>Node.js · Express · MongoDB · React</dd>
-        </div>
-        <div>
-          <dt>Status</dt>
-          <dd>Active development</dd>
-        </div>
-      </dl>
     </div>
   </section>
 
@@ -511,11 +546,6 @@
           <p class="card-tag">Module</p>
           <h3>Shops</h3>
           <p>Directory of local home businesses and neighborhood services supporting the community economy.</p>
-        </article>
-        <article class="card bracket">
-          <p class="card-tag">Module</p>
-          <h3>User Passwords</h3>
-          <p>Secure password reset and account recovery system with token-based authentication and encryption.</p>
         </article>
       </div>
     </div>
@@ -643,6 +673,7 @@
             <pre><code>MONGODB_URI=mongodb://localhost:27017/jiran-tetangga
 JWT_KEY=&lt;your-secret&gt;
 VITE_API_BASE_URL=http://localhost:8118/jiran-tetangga/v1</code></pre>
+            <p>For a complete list of available configuration options, refer to the <code>.env.example</code> files in the project root and <code>packages/api-server/</code> directories.</p>
           </div>
         </li>
         <li>
@@ -654,6 +685,52 @@ VITE_API_BASE_URL=http://localhost:8118/jiran-tetangga/v1</code></pre>
           </div>
         </li>
       </ol>
+    </div>
+  </section>
+
+  <section id="faq" class="section reveal">
+    <div class="wrap">
+      <div class="section-head">
+        <p class="eyebrow">Frequently Asked Questions</p>
+        <h2>Common questions about setup and configuration</h2>
+      </div>
+
+      <div class="faq-item bracket">
+        <div class="faq-question">
+          What if I don't have Infisical setup for secret management?
+        </div>
+        <div class="faq-answer">
+          If you don't have Infisical configured, you can manually set up environment variables using the provided <code>.env.example</code> files. Simply copy <code>.env.example</code> to <code>.env</code> in the project root and <code>packages/api-server/</code> directory, then fill in the required values such as MongoDB URI, JWT secret, and other configuration options. The application will read these variables directly from your <code>.env</code> files during development.
+        </div>
+      </div>
+
+      <div class="faq-item bracket">
+        <div class="faq-question">
+          How do I run the application in development mode?
+        </div>
+        <div class="faq-answer">
+          To run the application in development mode, first ensure you have completed the installation and configuration steps. Then, simply run <code>./run-local.sh</code> in your terminal. This script will start both the backend API server and the frontend web application concurrently. You can access the frontend at <code>http://localhost:3000</code> and the API at <code>http://localhost:8118/jiran-tetangga/v1</code>.
+        </div>
+      </div>
+
+      <div class="faq-item bracket">
+        <div class="faq-question">
+          What database does JiranTetangga use and how do I set it up?
+        </div>
+        <div class="faq-answer">
+          JiranTetangga uses MongoDB as its primary database. To set it up locally, you need to have MongoDB installed and running on your machine. The application expects a MongoDB instance running on the default port (27017) with a database named "jiran-tetangga". You can modify the connection string in your environment variables if you need to use a different host, port, or database name.
+        </div>
+      </div>
+
+      <div class="faq-item bracket">
+        <div class="faq-question">
+          How can I contribute to the JiranTetangga project?
+        </div>
+        <div class="faq-answer">
+          We welcome contributions to JiranTetangga! To contribute, please fork the repository, create a new branch for your feature or bug fix, make your changes, and submit a pull request. Please ensure your code follows our coding standards, includes appropriate tests, and passes all existing checks. For major changes, please open an issue first to discuss what you would like to change.
+        </div>
+      </div>
+
     </div>
   </section>
 
@@ -743,6 +820,14 @@ VITE_API_BASE_URL=http://localhost:8118/jiran-tetangga/v1</code></pre>
       window.scrollTo({ top: 0, behavior: reduceMotion ? 'auto' : 'smooth' });
     });
   }
+
+  var faqItems = document.querySelectorAll('.faq-item');
+  Array.prototype.forEach.call(faqItems, function(item){
+    var question = item.querySelector('.faq-question');
+    question.addEventListener('click', function(){
+      item.classList.toggle('active');
+    });
+  });
 })();
 </script>
 </body>

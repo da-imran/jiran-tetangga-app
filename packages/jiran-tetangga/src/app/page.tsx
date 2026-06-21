@@ -83,7 +83,6 @@ export default function Home() {
       setLoadingDisruptions(true);
       try {
         const disruptionsData = await api.get('/disruptions');
-        console.log('Disruptions API data:', disruptionsData.data);
 
         const formattedDisruptions = disruptionsData.data
         .filter((post: any) => post.status === 'active')
@@ -113,7 +112,6 @@ export default function Home() {
       setLoadingShopNotifications(true);
       try {
         const shopsData = await api.get('/shops');
-        console.log('Shops API data:', shopsData.data);
 
         const formattedShops = shopsData.data
         .map((post: any) => ({
@@ -170,7 +168,6 @@ export default function Home() {
       setLoadingEvents(true);
       try {
         const eventsData = await api.get('/events');
-        console.log('Events API data:', eventsData.data);
 
         const formattedEvents = eventsData.data
         .filter((event: any) => event.status === 'approved')

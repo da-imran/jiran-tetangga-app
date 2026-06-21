@@ -89,15 +89,22 @@ This installs all workspace packages and links cross-package dependencies (e.g. 
 
 ### 2. Configure environment
 
-The repo ships with a `.env` at the root containing backend defaults. Override per-machine if needed:
+Copy the example environment files and fill in your values:
 
 ```bash
-# Required backend vars (defaults live in .env)
+cp .env.example .env
+cp packages/api-server/.env.example packages/api-server/.env
+```
+
+Then edit the `.env` files to set your actual values:
+
+```bash
+# Required backend vars (in .env)
 MONGODB_URI=mongodb://localhost:27017/jiran-tetangga
 JWT_KEY=<your-secret>
 ENCRYPTION_KEY=<your-key>
 
-# Required frontend vars (set by run-local.sh or your shell)
+# Required frontend vars (in .env or set by run-local.sh/your shell)
 PORT=3000              # Vite dev server port
 BASE_PATH=/            # Vite public base path
 VITE_API_BASE_URL=http://localhost:8118/jiran-tetangga/v1
@@ -162,6 +169,15 @@ pnpm dev:web     # Frontend (Vite on PORT=3000)
 ---
 
 ## Environment Variables
+
+To get started, copy the example environment files and fill in your values:
+
+```bash
+cp .env.example .env
+cp packages/api-server/.env.example packages/api-server/.env
+```
+
+The `.env.example` files in the root directory and in `packages/api-server/` show the required environment variables with placeholder values.
 
 ### Backend (`packages/api-server/.env`)
 
