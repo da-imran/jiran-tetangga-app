@@ -758,7 +758,7 @@ VITE_API_BASE_URL=http://localhost:8118/jiran-tetangga/v1</code></pre>
 
           <h4>3. DevOps &amp; CI/CD</h4>
           <ul>
-            <li><strong>Dockerfile</strong>: Node 20-alpine, pnpm install from lockfile, workspace files copied first for layer caching, and a non-root <code>nodejs</code> user (UID 1001) for runtime.</li>
+            <li><strong>Dockerfile</strong>: Node 24-alpine, pnpm install from lockfile, workspace files copied first for layer caching, and a non-root <code>nodejs</code> user (UID 1001) for runtime.</li>
             <li><strong>docker-compose.yaml</strong>: three services — <code>backend</code>, <code>mongodb</code> (with a real <code>mongosh</code> healthcheck and named volume), and an <code>nginx</code> reverse proxy.</li>
             <li><strong>Nginx reverse proxy</strong> with proper <code>X-Real-IP</code>, <code>X-Forwarded-For</code>, and <code>X-Forwarded-Proto</code> headers — production hardening most demos skip.</li>
             <li><strong>One-shot launcher</strong> (<code>run-local.sh</code>) that picks the Infisical environment based on <code>NODE_ENV</code> and runs both apps in parallel.</li>

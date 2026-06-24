@@ -2,7 +2,7 @@
 
 # Simple build for the JiranTetangga API server (works with pnpm workspace)
 
-ARG NODE_VERSION=20-alpine
+ARG NODE_VERSION=24-alpine
 FROM node:${NODE_VERSION}
 
 WORKDIR /usr/src/app
