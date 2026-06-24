@@ -321,6 +321,41 @@
     opacity:1;
     transition:max-height 0.3s ease, opacity 0.3s ease;
   }
+  .faq-item.faq-detailed.active .faq-answer{
+    max-height:8000px;
+  }
+  .faq-answer h4{
+    font-family:var(--font-display);
+    font-size:0.95rem;
+    font-weight:600;
+    color:var(--ink);
+    margin-top:14px;
+    margin-bottom:6px;
+  }
+  .faq-answer h4:first-child{
+    margin-top:4px;
+  }
+  .faq-answer ul{
+    margin:8px 0;
+    padding-left:22px;
+    list-style:disc;
+  }
+  .faq-answer li{
+    margin-bottom:6px;
+  }
+  .faq-answer p + p,
+  .faq-answer p + ul,
+  .faq-answer p + h4,
+  .faq-answer ul + p,
+  .faq-answer ul + h4{
+    margin-top:12px;
+  }
+  .faq-answer code{
+    background:var(--line);
+    padding:2px 6px;
+    border-radius:2px;
+    font-size:0.86rem;
+  }
   @media (max-width: 600px){
     .faq-item{
       padding:16px 0;
@@ -691,8 +726,79 @@ VITE_API_BASE_URL=http://localhost:8118/jiran-tetangga/v1</code></pre>
   <section id="faq" class="section reveal">
     <div class="wrap">
       <div class="section-head">
-        <p class="eyebrow">Frequently Asked Questions</p>
-        <h2>Common questions about setup and configuration</h2>
+        <p class="eyebrow">Frequently Asked Questions (Maybe)</p>
+        <h2>Why, What, How?</h2>
+      </div>
+
+      <div class="faq-item faq-detailed bracket">
+        <div class="faq-question">
+          Why I make this project?
+        </div>
+        <div class="faq-answer">
+          <p>The idea came when I was actually looking to buy my first house. I thought of what if we have some sort of website or platform for the community in that area to communicate and do some stuff together. Then this project came out from my head where I try to build a platform that allow the communities or users to look around what's happening in their neighbourhood area. From rumah terbuka, kenduri, missing items and stuff, to booking a dewan, I make an effort to include everything that could be helpful to a community that has a specific platform for its local events.</p>
+          <p>A bit of details what this project consists of.</p>
+
+          <h4>1. Backend Engineering (Primary Focus)</h4>
+          <p>The bulk of the codebase is the Express 5 API server at <code>packages/api-server/</code>, deliberately kept as CommonJS to avoid rewriting a working Express app just to follow a newer convention.</p>
+          <ul>
+            <li>13 fully implemented feature modules (<code>adminUsers</code>, <code>bookings</code>, <code>contacts</code>, <code>disruptions</code>, <code>events</code>, <code>facilities</code>, <code>incidents</code>, <code>lostFound</code>, <code>marketplace</code>, <code>parks</code>, <code>reports</code>, <code>shops</code>, <code>userPasswords</code>), each with full CRUD, search, filters, and pagination.</li>
+            <li>A proper data layer in <code>utilities/mongodb.js</code>: connection management, <code>findOne</code>, <code>insertOne</code>, <code>findOneAndUpdate</code>, <code>updateMany</code>, <code>deleteOne</code>, <code>aggregate</code>, and a <code>updateTimeSeries</code> helper for MongoDB time-series collections.</li>
+            <li>Auto-generated OpenAPI docs via <code>swagger-autogen</code>, served at <code>/jiran-tetangga/v1/api-docs</code>.</li>
+            <li>Real bootstrapping in <code>app.js</code>: fail-fast secret loading, Mongo connection, middleware registration, route mounting, Swagger UI, and port binding — each step in a deliberate order.</li>
+          </ul>
+
+          <h4>2. Frontend Development (Some Involvement)</h4>
+          <p>The frontend at <code>packages/jiran-tetangga/</code> uses React 19 + Vite + TypeScript + Tailwind + Radix UI + TanStack Query + wouter — modern, but not overwhelming.</p>
+          <ul>
+            <li><strong>Accessibility menu</strong>: high-contrast toggle, font-size stepper, and text-to-speech via the Web Speech API that reads any element marked <code>data-speakable="true"</code>; preferences persist to localStorage.</li>
+            <li><strong>Forms with Zod + react-hook-form</strong> (e.g. <code>event-proposal-form.tsx</code>) — same validation on the frontend that the backend uses through the shared <code>@workspace/api-zod</code> library.</li>
+            <li><strong>Shared data layer</strong> wrapping TanStack Query, with real fetch logic and loading states for Disruptions, Shops, Parks, and Events.</li>
+            <li><strong>Two shared internal libraries</strong> (<code>api-zod</code>, <code>api-client-react</code>) keep both ends honest about the contract.</li>
+          </ul>
+
+          <h4>3. DevOps &amp; CI/CD</h4>
+          <ul>
+            <li><strong>Dockerfile</strong>: Node 20-alpine, pnpm install from lockfile, workspace files copied first for layer caching, and a non-root <code>nodejs</code> user (UID 1001) for runtime.</li>
+            <li><strong>docker-compose.yaml</strong>: three services — <code>backend</code>, <code>mongodb</code> (with a real <code>mongosh</code> healthcheck and named volume), and an <code>nginx</code> reverse proxy.</li>
+            <li><strong>Nginx reverse proxy</strong> with proper <code>X-Real-IP</code>, <code>X-Forwarded-For</code>, and <code>X-Forwarded-Proto</code> headers — production hardening most demos skip.</li>
+            <li><strong>One-shot launcher</strong> (<code>run-local.sh</code>) that picks the Infisical environment based on <code>NODE_ENV</code> and runs both apps in parallel.</li>
+            <li><strong>Structured logging</strong> via a custom logger in <code>utilities/logger.js</code> — emits level-routed (critical/error/warn/info/debug) key=value lines to stdout, ready to be collected by any container log driver or downstream pipeline.</li>
+            <li><strong>Workspace-level scripts</strong>: <code>pnpm dev</code>, <code>build</code>, <code>typecheck</code>, <code>lint</code>, <code>test</code> — the full monorepo pipeline menu.</li>
+            <li><strong>CI/CD Pipeline</strong> (<code>.github/workflows/jiran-tetangga-check.yaml</code>): 2 jobs on every push and PR to <code>main</code>, <code>staging</code>, and <code>development</code> — <code>build</code> compiles the api-server Docker image with Buildx + GitHub Actions layer caching; <code>test</code> spins up MongoDB 8.0 as a service, writes a real <code>.env</code> with <code>INFISICAL_ENV=ci</code> creds, and runs <code>pnpm test</code> (Mocha + Chai + Sinon with sinon-stubbed MongoDB);</li>
+          </ul>
+          <h4>4. AI Tools</h4>
+          <p>This project was build with <strong>Claude Code</strong> — Anthropic's agentic CLI — as the primary development partner, rather than a runtime AI feature inside the app. The integration lives in the <code>.claude/</code> directory, which holds the configuration and context the agent works against on every session.</p>
+          <ul>
+            <li><strong>Scoped autonomy via a permission allowlist</strong> (<code>.claude/settings.local.json</code>): What I allow Claude Code to run from such as <code>ls</code>, <code>docker</code> commands, <code>node</code> commands. I avoid to put any destructive command <code>rm -f</code> etc in here otherwise, mess up</li>
+            <li><strong>Claude markdown file</strong>: The <code>CLAUDE.md</code> only contains specific instruction for this project, tend to keep it <code>200</code> lines max, complete with Claude Skills, commands, rules based on prompt sent.</li>
+            <li><strong>Rules, Plans, Commands</strong>: This is the detailed folder that contains what must the AI follow i.e. coding structure, naming conventions, deploy commands and etc, which are injected in the <code>claude.md</code> file. The plans directory was made all documentations on feature development, bug fixes, task etc.</li>
+          </ul>
+
+          <h4>5. Secrets (Infisical)</h4>
+          <p>Full Infisical SDK integration (<code>@infisical/sdk</code> v4.0.4) at <code>utilities/secrets.js</code>:</p>
+          <ul>
+            <li><strong>Universal Auth flow</strong> (<code>clientId</code> + <code>clientSecret</code>) — the production-safe pattern.</li>
+            <li><strong>Environment-aware</strong>: reads <code>INFISICAL_ENV</code> and pulls secrets under path <code>/JiranTetangga</code>.</li>
+            <li><strong>Four named secrets</strong>: <code>MONGO_URI</code>, <code>ENCRYPTION_KEY</code>, <code>API_KEY</code>, <code>JWT_KEY</code>.</li>
+            <li><strong>Fail-fast guard</strong>: <code>checkSecretObjectNull()</code> returns false if any secret is missing, and <code>app.js</code> calls <code>process.exit(1)</code> — the app won't start with missing secrets.</li>
+            <li><strong>Environment-aware fallback</strong>: local/dev uses <code>.env</code> values; other environments use Infisical.</li>
+          </ul>
+
+          <h4>6. AuthN &amp; AuthZ</h4>
+          <p>Both are implemented properly, in separate middleware files.</p>
+          <ul>
+            <li><strong>Authentication (AuthN)</strong>: the login endpoint accepts email + password, AES-decrypts the stored password using <code>ENCRYPTION_KEY</code> from Infisical (<code>crypto-js</code> AES-ECB + PKCS7), and signs a JWT with <code>{ id, email }</code> using HS256 and a 15-minute expiry.</li>
+            <li><strong>JWT helpers</strong>: <code>verifyToken</code> constrains accepted algorithms to <code>['HS256']</code> — preventing algorithm-substitution attacks.</li>
+            <li><strong>Authorization (AuthZ) — layered</strong>:
+              <ul>
+                <li>Service-level: every request must carry a valid <code>x-api-key</code> matching the Infisical-stored <code>API_KEY</code>.</li>
+                <li>Path-based policy: four paths explicitly excluded from API-key checks (root, versioned base, <code>/forgot-password</code>, <code>/reset-password</code>) — a clean allowlist.</li>
+                <li>Environment-gated: the API-key middleware only runs outside <code>local</code>/<code>dev</code>/<code>development</code>.</li>
+                <li>Admin user management is a first-class module (<code>adminUsers.js</code>) with full CRUD.</li>
+              </ul>
+            </li>
+          </ul>
+        </div>
       </div>
 
       <div class="faq-item bracket">
@@ -722,15 +828,6 @@ VITE_API_BASE_URL=http://localhost:8118/jiran-tetangga/v1</code></pre>
         </div>
       </div>
 
-      <div class="faq-item bracket">
-        <div class="faq-question">
-          How can I contribute to the JiranTetangga project?
-        </div>
-        <div class="faq-answer">
-          We welcome contributions to JiranTetangga! To contribute, please fork the repository, create a new branch for your feature or bug fix, make your changes, and submit a pull request. Please ensure your code follows our coding standards, includes appropriate tests, and passes all existing checks. For major changes, please open an issue first to discuss what you would like to change.
-        </div>
-      </div>
-
     </div>
   </section>
 
@@ -749,7 +846,7 @@ VITE_API_BASE_URL=http://localhost:8118/jiran-tetangga/v1</code></pre>
     </div>
   </div>
   <div class="wrap footer-bottom">
-    <p>© 2026 JiranTetangga. Built as a pnpm workspace.</p>
+    <p>© 2026 JiranTetangga - <i>This page was built by Claude actually</i> 🤖</p>
     <button class="to-top" id="to-top">Back to top ↑</button>
   </div>
 </footer>

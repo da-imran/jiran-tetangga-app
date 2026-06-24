@@ -178,9 +178,6 @@ importers:
       '@infisical/sdk':
         specifier: ^4.0.4
         version: 4.0.6(@aws-sdk/client-sso-oidc@3.600.0)
-      axios:
-        specifier: ^1.11.0
-        version: 1.18.0
       chai:
         specifier: ^4.3.7
         version: 4.5.0

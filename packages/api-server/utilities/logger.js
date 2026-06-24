@@ -1,7 +1,3 @@
-// const winston = require('winston');
-const { secrets } = require('./secrets');
-const axios = require('axios');
-
 const LOG_LEVELS = {
 	CRITICAL: 'critical',
 	ERROR: 'error',
@@ -10,7 +6,13 @@ const LOG_LEVELS = {
 	DEBUG: 'debug',
 };
 
-const getNanoTimestamp = () => `${Date.now()}000000`;
+const CONSOLE_METHOD = {
+	[LOG_LEVELS.CRITICAL]: 'error',
+	[LOG_LEVELS.ERROR]: 'error',
+	[LOG_LEVELS.WARNING]: 'warn',
+	[LOG_LEVELS.INFO]: 'info',
+	[LOG_LEVELS.DEBUG]: 'log',
+};
 
 function formatLogLine(data) {
 	return Object.entries(data)
@@ -21,7 +23,7 @@ function formatLogLine(data) {
 }
 
 const logger = {
-	async log({
+	log({
 		level = LOG_LEVELS.INFO,
 		message = '',
 		method,
@@ -45,26 +47,8 @@ const logger = {
 			...(data ? { data } : {}),
 		});
 
-		const payload = {
-			streams: [
-				{
-					stream: { level, module, service },
-					values: [[getNanoTimestamp(), logLine]],
-				},
-			],
-		};
-		try {
-			const LOKI_HOST = secrets.LOKI_HOST.value;
-			const LOKI_TOKEN = secrets.LOKI_TOKEN.value;
-			await axios.post(`${LOKI_HOST}`, payload, {
-				headers: { 
-					'Content-Type': 'application/json',
-					Authorization: `Bearer 1295685:${LOKI_TOKEN}`,
-				},
-			});
-		} catch (err) {
-			console.error('Failed to send log to Loki:', err.message);
-		}
+		const consoleMethod = CONSOLE_METHOD[level] || 'log';
+		console[consoleMethod](logLine);
 	},
 };
 
