@@ -519,7 +519,7 @@
       <div class="section-head">
         <p class="eyebrow">Feature modules</p>
         <h2>What residents actually use</h2>
-        <p>Thirteen modules work together to power community management.</p>
+        <p>12 modules work together to power community management.</p>
       </div>
       <div class="card-grid">
         <article class="card bracket">
@@ -741,7 +741,7 @@ VITE_API_BASE_URL=http://localhost:8118/jiran-tetangga/v1</code></pre>
           <h4>1. Backend Engineering (Primary Focus)</h4>
           <p>The bulk of the codebase is the Express 5 API server at <code>packages/api-server/</code>, deliberately kept as CommonJS to avoid rewriting a working Express app just to follow a newer convention.</p>
           <ul>
-            <li>13 fully implemented feature modules (<code>adminUsers</code>, <code>bookings</code>, <code>contacts</code>, <code>disruptions</code>, <code>events</code>, <code>facilities</code>, <code>incidents</code>, <code>lostFound</code>, <code>marketplace</code>, <code>parks</code>, <code>reports</code>, <code>shops</code>, <code>userPasswords</code>), each with full CRUD, search, filters, and pagination.</li>
+            <li>12 fully implemented feature modules (<code>adminUsers</code>, <code>bookings</code>, <code>contacts</code>, <code>disruptions</code>, <code>events</code>, <code>facilities</code>, <code>incidents</code>, <code>lostFound</code>, <code>marketplace</code>, <code>parks</code>, <code>reports</code>, <code>shops</code>, <code>userPasswords</code>), each with full CRUD, search, filters, and pagination.</li>
             <li>A proper data layer in <code>utilities/mongodb.js</code>: connection management, <code>findOne</code>, <code>insertOne</code>, <code>findOneAndUpdate</code>, <code>updateMany</code>, <code>deleteOne</code>, <code>aggregate</code>, and a <code>updateTimeSeries</code> helper for MongoDB time-series collections.</li>
             <li>Auto-generated OpenAPI docs via <code>swagger-autogen</code>, served at <code>/jiran-tetangga/v1/api-docs</code>.</li>
             <li>Real bootstrapping in <code>app.js</code>: fail-fast secret loading, Mongo connection, middleware registration, route mounting, Swagger UI, and port binding — each step in a deliberate order.</li>
