@@ -14,6 +14,9 @@ const secrets = {
 	JWT_KEY: { name: 'JWT_KEY', value: null }
 };
 
+const LOCAL_LIKE_ENVS = ['local', 'dev', 'development', 'ci'];
+const isLocalEnv = () => LOCAL_LIKE_ENVS.includes(process.env.NODE_ENV || 'local');
+
 let client;
 // Setup to connect to client
 const setupClient = async () => {
@@ -50,8 +53,19 @@ const getSecrets = async (secretsObj) => {
 		})
 	);
 };
-const checkSecretObjectNull = async () => {
+
+const loadSecrets = async () => {
+	if (isLocalEnv()) {
+		Object.keys(secrets).forEach((key) => {
+			secrets[key].value = process.env[secrets[key].name] || null;
+		});
+		return;
+	}
 	await getSecrets(secrets);
+};
+
+const checkSecretObjectNull = async () => {
+	await loadSecrets();
 	let valid = true;
 
 	for (const key in secrets) {
